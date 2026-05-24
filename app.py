@@ -1,473 +1,477 @@
 import streamlit as st
-import pandas as pd
-import numpy as np
-import plotly.express as px
 import plotly.graph_objects as go
-import networkx as nx
-import pytesseract
-import re
-import random
-import streamlit as st
+import numpy as np
+import pandas as pd
 import json
 import os
 import glob
 
 from datetime import datetime
 
-from PIL import Image
-from streamlit_option_menu import option_menu
-
-# =====================================================
-# CONFIG
-# =====================================================
+# ==================================================
+# PAGE CONFIG
+# ==================================================
 
 st.set_page_config(
-    page_title="SignalMap AI",
-    page_icon="⚡",
-    layout="centered",
-    initial_sidebar_state="collapsed"
+    page_title="Signal Map AI",
+    layout="wide"
 )
 
-# =====================================================
-# COSMIC UI
-# =====================================================
+# ==================================================
+# PREMIUM STYLE
+# ==================================================
 
 st.markdown("""
 <style>
 
-/* =====================================================
-BACKGROUND COSMOS
-===================================================== */
-
-.stApp {
-    background:
-    radial-gradient(circle at top,#081b3a 0%,#020617 45%,#000000 100%);
+.stApp{
+    background-color:#050816;
     color:white;
-    overflow-x:hidden;
 }
 
-/* =====================================================
-STARFIELD
-===================================================== */
-
-.stApp::before{
-    content:"";
-    position:fixed;
-    width:100%;
-    height:100%;
-    top:0;
-    left:0;
-    background-image:
-    radial-gradient(white 1px, transparent 1px),
-    radial-gradient(#00c6ff 1px, transparent 1px),
-    radial-gradient(#ffffff 2px, transparent 2px);
-
-    background-size:
-    120px 120px,
-    180px 180px,
-    250px 250px;
-
-    background-position:
-    0 0,
-    40px 60px,
-    130px 90px;
-
-    opacity:0.12;
-    z-index:-1;
-
-    animation: starsMove 120s linear infinite;
+[data-testid="stSidebar"]{
+    background-color:#0B1026;
 }
 
-@keyframes starsMove{
-    from{
-        transform:translateY(0px);
-    }
-    to{
-        transform:translateY(-1000px);
-    }
+h1,h2,h3,h4{
+    color:#C8B6FF;
 }
 
-/* =====================================================
-SMOOTH ANIMATION
-===================================================== */
-
-*{
-    transition:all 0.4s ease;
-}
-
-/* =====================================================
-MAIN CONTAINER
-===================================================== */
-
-.block-container{
-    padding-top:1rem;
-    padding-bottom:6rem;
-    padding-left:0.8rem;
-    padding-right:0.8rem;
-    animation:fadeIn 1.2s ease;
-}
-
-@keyframes fadeIn{
-    from{
-        opacity:0;
-        transform:translateY(25px);
-    }
-    to{
-        opacity:1;
-        transform:translateY(0px);
-    }
-}
-
-/* =====================================================
-TEXT
-===================================================== */
-
-h1{
-    font-size:2.4rem !important;
-    font-weight:800;
+div.stButton > button{
+    background:#7B61FF;
     color:white;
-    text-align:center;
+    border-radius:12px;
+    border:none;
+    padding:0.6rem 1rem;
+    font-weight:bold;
 }
 
-h2,h3{
-    color:#8be9fd;
-    font-weight:700;
-}
-
-/* =====================================================
-GLASS CARDS
-===================================================== */
-
-[data-testid="stMetric"]{
-    background:rgba(255,255,255,0.05);
-    backdrop-filter:blur(18px);
-    border-radius:25px;
-    padding:18px;
-    border:1px solid rgba(255,255,255,0.08);
-    box-shadow:0 0 25px rgba(0,255,255,0.08);
-}
-
-/* =====================================================
-CHARTS
-===================================================== */
-
-div[data-testid="stPlotlyChart"]{
-    background:rgba(255,255,255,0.03);
-    border-radius:25px;
-    padding:12px;
-    overflow:hidden;
-    backdrop-filter:blur(12px);
-}
-
-/* =====================================================
-GLOW CARD
-===================================================== */
-
-.glow-card{
-    background:linear-gradient(135deg,#00c6ff,#0072ff);
-    padding:30px;
-    border-radius:30px;
-    text-align:center;
-    margin-bottom:20px;
-    box-shadow:0 0 50px rgba(0,255,255,0.35);
-}
-
-/* =====================================================
-MENU
-===================================================== */
-
-.nav-link{
-    font-size:18px !important;
-}
-
-/* =====================================================
-PLOT MOBILE
-===================================================== */
-
-@media (max-width:768px){
-
-    h1{
-        font-size:2rem !important;
-    }
-
-    iframe{
-        height:350px !important;
-    }
-
-    .js-plotly-plot{
-        height:350px !important;
-    }
-
+div.stMetric{
+    background-color:#11162A;
+    padding:10px;
+    border-radius:10px;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-# =====================================================
-# SPLASH SCREEN
-# =====================================================
+# ==================================================
+# SIDEBAR
+# ==================================================
 
-with st.container():
+st.sidebar.title("SIGNAL MAP AI")
 
-    st.markdown("""
-
-    <div style="
-    text-align:center;
-    padding:10px;
-    margin-bottom:20px;
-    animation:fadeIn 2s ease;
-    ">
-
-    <h1>⚡ SIGNALMAP AI</h1>
-
-    <p style="
-    color:#8be9fd;
-    font-size:18px;
-    ">
-    Synchronicity Intelligence System
-    </p>
-
-    </div>
-
-    """, unsafe_allow_html=True)
-
-# =====================================================
-# LOAD DATA
-# =====================================================
-
-df = pd.read_csv("signals.csv")
-
-# =====================================================
-# MOBILE MENU
-# =====================================================
-
-selected = option_menu(
-    menu_title=None,
-    options=["Home","Scanner","Constellation","AI","Registry"],
-    icons=["house","camera","stars","cpu","table"],
-    orientation="horizontal"
+page = st.sidebar.radio(
+    "Navigation",
+    [
+        "Live Signal",
+        "Signal Journal",
+        "Timeline",
+        "Insights"
+    ]
 )
 
-# =====================================================
-# HOME
-# =====================================================
+# ==================================================
+# SAVE SIGNAL
+# ==================================================
 
-if selected == "Home":
+def save_signal(signal_data):
 
-    dominant = df["numero"].value_counts().idxmax()
+    os.makedirs("signals", exist_ok=True)
 
-    st.markdown(f"""
+    filename = f"signals/{signal_data['date']}.json"
 
-    <div class="glow-card">
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump(signal_data, f, indent=4)
 
-    <h3 style="color:white;">
-    Dominant Frequency
-    </h3>
+# ==================================================
+# LOAD SIGNAL
+# ==================================================
 
-    <h1 style="color:white;font-size:70px;">
-    {dominant}
-    </h1>
+def load_signal(date):
 
-    </div>
+    filename = f"signals/{date}.json"
 
-    """, unsafe_allow_html=True)
+    if os.path.exists(filename):
 
-    col1 = st.columns(1)[0]
+        with open(filename, "r", encoding="utf-8") as f:
+            return json.load(f)
 
-    col1.metric("Signals", len(df))
+    return None
 
-    st.subheader("⚡ AI Insights")
+# ==================================================
+# PATTERN ANALYSIS ENGINE
+# ==================================================
 
-    st.info(f"Dominant number detected today: {dominant}")
-    st.info("Retro sequence clusters active")
-    st.info("Mirror frequencies increasing")
-    st.info("Constellation mapping stabilized")
+def analyze_pattern(nodes):
 
-# =====================================================
-# LIVE CAMERA / GALLERY
-# =====================================================
+    x_values = [n[0] for n in nodes]
+    y_values = [n[1] for n in nodes]
 
-if selected == "Scanner":
-
-    st.title("📸 Live Signal Scanner")
-
-    uploaded = st.file_uploader(
-        "Upload image or screenshot",
-        type=["png","jpg","jpeg"]
+    symmetry_score = round(
+        1 - abs(np.mean(x_values)),
+        2
     )
 
-    if uploaded:
+    vertical_alignment = np.std(x_values) < 0.25
 
-        image = Image.open(uploaded)
+    lower_density = np.mean(y_values) < 0
 
-        st.image(image,use_container_width=True)
+    reading = []
 
-        text = pytesseract.image_to_string(image)
+    if symmetry_score > 0.75:
+        reading.append(
+            "High symmetry detected indicating alignment."
+        )
 
-        st.subheader("🧠 AI Detected Text")
+    if vertical_alignment:
+        reading.append(
+            "Strong central axis formation detected."
+        )
 
-        st.code(text)
+    if lower_density:
+        reading.append(
+            "Lower-node concentration suggests grounding and manifestation."
+        )
 
-        numbers = re.findall(r'\d+', text)
+    if len(reading) == 0:
+        reading.append(
+            "Distributed exploratory structure detected."
+        )
 
-        st.subheader("⚡ Numbers Detected")
+    return {
+        "pattern_type": "Humanoid Structure",
+        "energy_type": "Convergent",
+        "symmetry_score": symmetry_score,
+        "reading": " ".join(reading)
+    }
 
-        for n in numbers:
-            st.success(f"Detected frequency: {n}")
+# ==================================================
+# GENERATE SIGNAL NODES
+# ==================================================
 
-# =====================================================
-# CONSTELLATION MAP
-# =====================================================
+np.random.seed(7)
 
-if selected == "Constellation":
+nodes = [
 
-    st.title("🌌 Cosmic Constellation Map")
+    (0.00, 0.60),
+    (-0.15, 0.50),
+    (0.15, 0.50),
 
-    G = nx.Graph()
+    (-0.25, 0.30),
+    (0.25, 0.30),
 
-    for _, row in df.iterrows():
+    (-0.10, 0.10),
+    (0.10, 0.10),
 
-        nums = str(row["numero"]).split("-")
+    (0.00, -0.10),
 
-        for i in range(len(nums)-1):
-            G.add_edge(nums[i], nums[i+1])
+    (-0.15, -0.30),
+    (0.15, -0.30),
 
-    pos = nx.spring_layout(
-        G,
-        seed=42,
-        k=1.5
-    )
+    (-0.05, -0.55),
+    (0.05, -0.55)
 
-    edge_x = []
-    edge_y = []
+]
 
-    for edge in G.edges():
+# ==================================================
+# LIVE SIGNAL
+# ==================================================
 
-        x0,y0 = pos[edge[0]]
-        x1,y1 = pos[edge[1]]
+if page == "Live Signal":
 
-        edge_x.extend([x0,x1,None])
-        edge_y.extend([y0,y1,None])
+    st.title("SIGNAL MAP AI")
 
-    edge_trace = go.Scatter(
-        x=edge_x,
-        y=edge_y,
-        line=dict(
-            width=1.5,
-            color="#4cc9f0"
-        ),
-        hoverinfo='none',
-        mode='lines'
-    )
+    st.markdown("""
+    ### Interactive Pattern Intelligence System
 
-    node_x=[]
-    node_y=[]
-    node_text=[]
+    Track • Analyze • Interpret • Archive
+    """)
 
-    for node in G.nodes():
+    analysis = analyze_pattern(nodes)
 
-        x,y = pos[node]
+    x = [n[0] for n in nodes]
+    y = [n[1] for n in nodes]
 
-        node_x.append(x)
-        node_y.append(y)
-        node_text.append(node)
+    fig = go.Figure()
 
-    node_trace = go.Scatter(
-        x=node_x,
-        y=node_y,
-        mode='markers+text',
-        text=node_text,
-        textposition="top center",
+    # CONNECTION LINES
 
-        marker=dict(
-            size=38,
-            color="#ffffff",
-            line=dict(
-                width=2,
-                color="#00c6ff"
+    for i in range(len(nodes)-1):
+
+        fig.add_trace(
+            go.Scatter(
+                x=[nodes[i][0], nodes[i+1][0]],
+                y=[nodes[i][1], nodes[i+1][1]],
+                mode="lines",
+                line=dict(
+                    width=2,
+                    color="#7B61FF"
+                ),
+                hoverinfo="none",
+                showlegend=False
             )
         )
-    )
 
-    fig = go.Figure(
-        data=[edge_trace,node_trace]
+    # NODES
+
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=y,
+            mode="markers+text",
+
+            marker=dict(
+                size=18,
+                color="#B388FF",
+                line=dict(
+                    width=2,
+                    color="white"
+                )
+            ),
+
+            text=[
+                str(i+1)
+                for i in range(len(nodes))
+            ],
+
+            textposition="top center",
+
+            hovertemplate=
+            "<b>Node %{text}</b><extra></extra>"
+        )
     )
 
     fig.update_layout(
 
-        template="plotly_dark",
+        height=700,
 
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="#050816",
+        plot_bgcolor="#050816",
+
+        font=dict(
+            color="white"
+        ),
 
         xaxis=dict(
-            showgrid=False,
-            zeroline=False,
             visible=False
         ),
 
         yaxis=dict(
-            showgrid=False,
-            zeroline=False,
             visible=False
-        ),
-
-        height=500,
-
-        margin=dict(
-            l=0,
-            r=0,
-            t=0,
-            b=0
         )
     )
 
-    st.plotly_chart(fig,use_container_width=True)
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
 
-# =====================================================
-# AI DETECTION
-# =====================================================
+    # METRICS
 
-if selected == "AI":
+    col1, col2, col3 = st.columns(3)
 
-    st.title("🧠 AI Pattern Detection")
+    with col1:
 
-    patterns=[]
-
-    for num in df["numero"]:
-
-        if "-" in str(num):
-
-            parts = str(num).split("-")
-
-            try:
-
-                parts=[int(x) for x in parts]
-
-                if sorted(parts)==list(range(min(parts),max(parts)+1)):
-                    patterns.append(f"⚡ Sequence detected: {num}")
-
-            except:
-                pass
-
-        if str(num)==str(num)[::-1]:
-            patterns.append(f"🪞 Mirror detected: {num}")
-
-    for p in patterns:
-        st.success(p)
-
-# =====================================================
-# REGISTRY
-# =====================================================
-
-if selected == "Registry":
-
-    st.title("📂 Signal Registry")
-
-    with st.expander("View Full Registry"):
-
-        st.dataframe(
-            df,
-            use_container_width=True,
-            height=400
+        st.metric(
+            "Symmetry",
+            f"{analysis['symmetry_score'] * 100:.0f}%"
         )
+
+    with col2:
+
+        st.metric(
+            "Pattern",
+            analysis["pattern_type"]
+        )
+
+    with col3:
+
+        st.metric(
+            "Energy",
+            analysis["energy_type"]
+        )
+
+    # AI READING
+
+    st.subheader("Pattern Reading AI")
+
+    st.info(
+        analysis["reading"]
+    )
+
+    # SAVE BUTTON
+
+    if st.button("Save Current Signal"):
+
+        signal_entry = {
+
+            "date": str(datetime.now().date()),
+
+            "title": "Central Alignment Formation",
+
+            "pattern_type": analysis["pattern_type"],
+
+            "energy_type": analysis["energy_type"],
+
+            "symmetry_score": analysis["symmetry_score"],
+
+            "intensity": 92,
+
+            "reading": analysis["reading"],
+
+            "created_at": str(datetime.now())
+        }
+
+        save_signal(signal_entry)
+
+        st.success(
+            "Signal saved successfully."
+        )
+
+# ==================================================
+# SIGNAL JOURNAL
+# ==================================================
+
+if page == "Signal Journal":
+
+    st.title("Signal Journal")
+
+    selected_date = st.date_input(
+        "Select Signal Date"
+    )
+
+    signal = load_signal(
+        str(selected_date)
+    )
+
+    if signal:
+
+        st.subheader(
+            signal["title"]
+        )
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            st.metric(
+                "Symmetry",
+                f"{signal['symmetry_score'] * 100:.0f}%"
+            )
+
+        with col2:
+
+            st.metric(
+                "Intensity",
+                signal["intensity"]
+            )
+
+        st.markdown(
+            f"### Pattern Type: {signal['pattern_type']}"
+        )
+
+        st.markdown(
+            f"### Energy Type: {signal['energy_type']}"
+        )
+
+        st.info(
+            signal["reading"]
+        )
+
+    else:
+
+        st.warning(
+            "No saved signal for this date."
+        )
+
+# ==================================================
+# TIMELINE
+# ==================================================
+
+if page == "Timeline":
+
+    st.title("Signal Timeline")
+
+    files = sorted(
+        glob.glob("signals/*.json")
+    )
+
+    if len(files) == 0:
+
+        st.warning(
+            "No saved signals yet."
+        )
+
+    for file in files:
+
+        with open(file, "r", encoding="utf-8") as f:
+
+            signal = json.load(f)
+
+            st.markdown(f"""
+            ---
+            ## {signal['date']}
+
+            ### {signal['pattern_type']}
+
+            **Energy Type**
+            {signal['energy_type']}
+
+            **Symmetry**
+            {signal['symmetry_score'] * 100:.0f}%
+
+            **Reading**
+            {signal['reading']}
+            """)
+
+# ==================================================
+# INSIGHTS
+# ==================================================
+
+if page == "Insights":
+
+    st.title("Insights")
+
+    files = sorted(
+        glob.glob("signals/*.json")
+    )
+
+    if len(files) == 0:
+
+        st.warning(
+            "Not enough saved signals yet."
+        )
+
+    else:
+
+        symmetry_scores = []
+
+        for file in files:
+
+            with open(file, "r", encoding="utf-8") as f:
+
+                signal = json.load(f)
+
+                symmetry_scores.append(
+                    signal["symmetry_score"]
+                )
+
+        avg_symmetry = np.mean(
+            symmetry_scores
+        )
+
+        st.metric(
+            "Average Symmetry",
+            f"{avg_symmetry * 100:.0f}%"
+        )
+
+        st.markdown("""
+        ### AI Insight
+
+        Recent formations reveal increasing structural consistency
+        and progressive convergence patterns across saved signals.
+
+        The system detects stabilization tendencies
+        and stronger central-axis manifestations.
+        """)
