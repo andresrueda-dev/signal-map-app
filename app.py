@@ -2,6 +2,37 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
+st.markdown("""
+<style>
+
+.stApp {
+    background-color: #050816;
+    color: white;
+}
+
+[data-testid="stMetric"] {
+    background-color: rgba(255,255,255,0.05);
+    border-radius: 15px;
+    padding: 15px;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+div[data-testid="stPlotlyChart"] {
+    background-color: rgba(255,255,255,0.03);
+    padding: 10px;
+    border-radius: 20px;
+}
+
+h1, h2, h3 {
+    color: #8be9fd;
+}
+
+section[data-testid="stSidebar"] {
+    background-color: #0b1023;
+}
+
+</style>
+""", unsafe_allow_html=True)
 # CONFIG
 st.set_page_config(
     page_title="Signal Map",
