@@ -4,3 +4,5 @@ plotly
 networkx
 matplotlib
 scipy
+pillow
+pytesseract
