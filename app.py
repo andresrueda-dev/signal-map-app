@@ -1,12 +1,14 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import networkx as nx
-from PIL import Image
 import pytesseract
 import re
-import streamlit as st
+
+from PIL import Image
+from streamlit_option_menu import option_menu
 
 st.set_page_config(
 page_title="SignalMap AI 🌌",
