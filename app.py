@@ -1,36 +1,86 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
+import plotly.express as px
 
-st.set_page_config(page_title="Signal Map")
+# CONFIG
+st.set_page_config(
+    page_title="Signal Map",
+    layout="wide",
+    page_icon="🔮"
+)
 
-st.title("🔮 Signal Map")
+# LOAD DATA
+df = pd.read_csv("signals.csv")
 
-number = st.text_input("Número")
-time_seen = st.time_input("Hora")
-context = st.text_input("Contexto")
+# SIDEBAR
+st.sidebar.title("⚡ Signal Map")
+st.sidebar.markdown("Sistema de sincronías y patrones")
 
-if st.button("Guardar"):
+# TITLE
+st.title("🔮 SIGNAL MAP")
+st.markdown("### Visualizador de patrones numéricos")
 
-    new_data = pd.DataFrame({
-        "numero": [number],
-        "hora": [time_seen.strftime("%H:%M")],
-        "contexto": [context],
-        "fecha": [datetime.now().strftime("%Y-%m-%d")]
-    })
+# METRICS
+col1, col2, col3, col4 = st.columns(4)
 
-    try:
-        old_data = pd.read_csv("signals.csv")
-        data = pd.concat([old_data, new_data])
-    except:
-        data = new_data
+col1.metric("Total Señales", len(df))
+col2.metric("Números Únicos", df["numero"].nunique())
+col3.metric("Tipos", df["tipo"].nunique())
+col4.metric("Hora Pico", "13:00")
 
-    data.to_csv("signals.csv", index=False)
+# DIVIDER
+st.divider()
 
-    st.success("Guardado")
+# GRAPH 1
+st.subheader("📈 Frecuencia de Tipos")
 
-try:
-    df = pd.read_csv("signals.csv")
-    st.dataframe(df)
-except:
-    st.warning("Sin registros")
+type_count = df["tipo"].value_counts().reset_index()
+type_count.columns = ["tipo", "cantidad"]
+
+fig1 = px.bar(
+    type_count,
+    x="tipo",
+    y="cantidad",
+    text_auto=True
+)
+
+st.plotly_chart(fig1, use_container_width=True)
+
+# GRAPH 2
+st.subheader("⏰ Mapa Temporal")
+
+time_count = df["hora"].value_counts().reset_index()
+time_count.columns = ["hora", "cantidad"]
+
+fig2 = px.line(
+    time_count,
+    x="hora",
+    y="cantidad",
+    markers=True
+)
+
+st.plotly_chart(fig2, use_container_width=True)
+
+# GRAPH 3
+st.subheader("🧠 Números Dominantes")
+
+number_count = df["numero"].value_counts().reset_index().head(10)
+number_count.columns = ["numero", "cantidad"]
+
+fig3 = px.pie(
+    number_count,
+    names="numero",
+    values="cantidad",
+    hole=0.5
+)
+
+st.plotly_chart(fig3, use_container_width=True)
+
+# DATA TABLE
+st.subheader("📂 Registro Completo")
+
+st.dataframe(
+    df,
+    use_container_width=True,
+    height=400
+)
