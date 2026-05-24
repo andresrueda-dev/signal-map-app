@@ -1,13 +1,4 @@
 streamlit
+plotly
 pandas
 numpy
-plotly==5.22.0
-opencv-python-headless
-pillow
-pytesseract
-scikit-learn
-networkx
-matplotlib
-streamlit-option-menu
-streamlit-lottie
-streamlit-extras
