@@ -3,6 +3,8 @@ import pandas as pd
 import plotly.express as px
 import networkx as nx
 import plotly.graph_objects as go
+from PIL import Image
+import pytesseract
 
 st.subheader("🧠 AI Pattern Detection")
 
