@@ -6,6 +6,15 @@ import networkx as nx
 from PIL import Image
 import pytesseract
 import re
+import streamlit as st
+
+st.set_page_config(
+page_title="SignalMap AI 🌌",
+page_icon="🌌",
+layout="wide",
+initial_sidebar_state="expanded"
+)
+
 
 # ---------------- CONFIG ----------------
 
