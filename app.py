@@ -4,6 +4,66 @@ import plotly.express as px
 import networkx as nx
 import plotly.graph_objects as go
 
+st.subheader("⚡ Tesla Signal Network")
+
+G = nx.Graph()
+
+for _, row in df.iterrows():
+    nums = str(row["numero"]).split("-")
+
+    for i in range(len(nums)-1):
+        G.add_edge(nums[i], nums[i+1])
+
+pos = nx.spring_layout(G)
+
+edge_x = []
+edge_y = []
+
+for edge in G.edges():
+    x0, y0 = pos[edge[0]]
+    x1, y1 = pos[edge[1]]
+
+    edge_x.extend([x0, x1, None])
+    edge_y.extend([y0, y1, None])
+
+edge_trace = go.Scatter(
+    x=edge_x,
+    y=edge_y,
+    line=dict(width=1),
+    hoverinfo='none',
+    mode='lines'
+)
+
+node_x = []
+node_y = []
+node_text = []
+
+for node in G.nodes():
+    x, y = pos[node]
+
+    node_x.append(x)
+    node_y.append(y)
+    node_text.append(node)
+
+node_trace = go.Scatter(
+    x=node_x,
+    y=node_y,
+    mode='markers+text',
+    text=node_text,
+    textposition="top center",
+    marker=dict(size=18)
+)
+
+fig_network = go.Figure(
+    data=[edge_trace, node_trace]
+)
+
+fig_network.update_layout(
+    template="plotly_dark",
+    height=700
+)
+
+st.plotly_chart(fig_network, use_container_width=True)
 st.markdown("""
 <style>
 
