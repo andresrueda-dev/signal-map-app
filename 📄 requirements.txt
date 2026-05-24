@@ -11,4 +11,3 @@ matplotlib
 streamlit-option-menu
 streamlit-lottie
 streamlit-extras
-
