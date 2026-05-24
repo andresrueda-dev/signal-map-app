@@ -3,6 +3,23 @@ import pandas as pd
 import plotly.express as px
 import networkx as nx
 import plotly.graph_objects as go
+st.subheader("📸 Live Signal Scanner")
+
+uploaded = st.file_uploader(
+    "Sube captura",
+    type=["png","jpg","jpeg"]
+)
+
+if uploaded:
+
+    image = Image.open(uploaded)
+
+    st.image(image)
+
+    text = pytesseract.image_to_string(image)
+
+    st.write("### Texto Detectado")
+    st.code(text)
 from PIL import Image
 import pytesseract
 
