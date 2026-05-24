@@ -4,6 +4,29 @@ import plotly.express as px
 import networkx as nx
 import plotly.graph_objects as go
 
+st.subheader("🧠 AI Pattern Detection")
+
+patterns = []
+
+for num in df["numero"]:
+
+    if "-" in str(num):
+        parts = str(num).split("-")
+
+        try:
+            parts = [int(x) for x in parts]
+
+            if sorted(parts) == list(range(min(parts), max(parts)+1)):
+                patterns.append(f"Secuencia detectada: {num}")
+
+        except:
+            pass
+
+    if str(num) == str(num)[::-1]:
+        patterns.append(f"Espejo detectado: {num}")
+
+for p in patterns:
+    st.success(p)
 st.subheader("⚡ Tesla Signal Network")
 
 G = nx.Graph()
