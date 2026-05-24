@@ -1,8 +1,8 @@
 streamlit
 pandas
 numpy
-plotly
-opencv-python
+plotly==5.22.0
+opencv-python-headless
 pillow
 pytesseract
 scikit-learn
@@ -11,3 +11,4 @@ matplotlib
 streamlit-option-menu
 streamlit-lottie
 streamlit-extras
+
