@@ -6,154 +6,252 @@ import plotly.graph_objects as go
 import networkx as nx
 import pytesseract
 import re
+import random
 
 from PIL import Image
 from streamlit_option_menu import option_menu
 
-# ---------------------------------------------------
+# =====================================================
 # CONFIG
-# ---------------------------------------------------
+# =====================================================
 
 st.set_page_config(
     page_title="SignalMap AI",
     page_icon="⚡",
-    layout="wide",
+    layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# ---------------------------------------------------
-# DARK MODE + MOBILE UI
-# ---------------------------------------------------
+# =====================================================
+# COSMIC UI
+# =====================================================
 
 st.markdown("""
 <style>
 
-/* BACKGROUND */
+/* =====================================================
+BACKGROUND COSMOS
+===================================================== */
 
 .stApp {
-    background: linear-gradient(180deg,#020617,#050816,#071028);
-    color: white;
+    background:
+    radial-gradient(circle at top,#081b3a 0%,#020617 45%,#000000 100%);
+    color:white;
+    overflow-x:hidden;
 }
 
-/* MAIN CONTAINER */
+/* =====================================================
+STARFIELD
+===================================================== */
 
-.block-container {
-    padding-top: 1rem;
-    padding-bottom: 6rem;
-    padding-left: 1rem;
-    padding-right: 1rem;
+.stApp::before{
+    content:"";
+    position:fixed;
+    width:100%;
+    height:100%;
+    top:0;
+    left:0;
+    background-image:
+    radial-gradient(white 1px, transparent 1px),
+    radial-gradient(#00c6ff 1px, transparent 1px),
+    radial-gradient(#ffffff 2px, transparent 2px);
+
+    background-size:
+    120px 120px,
+    180px 180px,
+    250px 250px;
+
+    background-position:
+    0 0,
+    40px 60px,
+    130px 90px;
+
+    opacity:0.12;
+    z-index:-1;
+
+    animation: starsMove 120s linear infinite;
 }
 
-/* TITLES */
-
-h1 {
-    font-size: 3rem !important;
-    font-weight: 800;
-    color: white;
+@keyframes starsMove{
+    from{
+        transform:translateY(0px);
+    }
+    to{
+        transform:translateY(-1000px);
+    }
 }
 
-h2, h3 {
-    color: #8be9fd;
+/* =====================================================
+SMOOTH ANIMATION
+===================================================== */
+
+*{
+    transition:all 0.4s ease;
 }
 
-/* GLASS EFFECT */
+/* =====================================================
+MAIN CONTAINER
+===================================================== */
 
-[data-testid="stMetric"] {
-    background: rgba(255,255,255,0.05);
-    backdrop-filter: blur(20px);
-    border-radius: 25px;
-    padding: 20px;
-    border: 1px solid rgba(255,255,255,0.08);
-    box-shadow: 0 0 30px rgba(0,255,255,0.08);
+.block-container{
+    padding-top:1rem;
+    padding-bottom:6rem;
+    padding-left:0.8rem;
+    padding-right:0.8rem;
+    animation:fadeIn 1.2s ease;
 }
 
-/* CHARTS */
-
-div[data-testid="stPlotlyChart"] {
-    background: rgba(255,255,255,0.03);
-    border-radius: 25px;
-    padding: 15px;
-    overflow: hidden;
+@keyframes fadeIn{
+    from{
+        opacity:0;
+        transform:translateY(25px);
+    }
+    to{
+        opacity:1;
+        transform:translateY(0px);
+    }
 }
 
-/* SIDEBAR */
+/* =====================================================
+TEXT
+===================================================== */
 
-section[data-testid="stSidebar"] {
-    background: #0b1023;
+h1{
+    font-size:2.4rem !important;
+    font-weight:800;
+    color:white;
+    text-align:center;
 }
 
-/* GLOW CARD */
-
-.glow-card {
-    background: linear-gradient(135deg,#00c6ff,#0072ff);
-    padding: 30px;
-    border-radius: 30px;
-    text-align: center;
-    margin-bottom: 20px;
-    box-shadow: 0 0 40px rgba(0,255,255,0.4);
+h2,h3{
+    color:#8be9fd;
+    font-weight:700;
 }
 
-/* SUCCESS BOX */
+/* =====================================================
+GLASS CARDS
+===================================================== */
 
-.stAlert {
-    border-radius: 20px;
+[data-testid="stMetric"]{
+    background:rgba(255,255,255,0.05);
+    backdrop-filter:blur(18px);
+    border-radius:25px;
+    padding:18px;
+    border:1px solid rgba(255,255,255,0.08);
+    box-shadow:0 0 25px rgba(0,255,255,0.08);
 }
 
-/* MOBILE */
+/* =====================================================
+CHARTS
+===================================================== */
+
+div[data-testid="stPlotlyChart"]{
+    background:rgba(255,255,255,0.03);
+    border-radius:25px;
+    padding:12px;
+    overflow:hidden;
+    backdrop-filter:blur(12px);
+}
+
+/* =====================================================
+GLOW CARD
+===================================================== */
+
+.glow-card{
+    background:linear-gradient(135deg,#00c6ff,#0072ff);
+    padding:30px;
+    border-radius:30px;
+    text-align:center;
+    margin-bottom:20px;
+    box-shadow:0 0 50px rgba(0,255,255,0.35);
+}
+
+/* =====================================================
+MENU
+===================================================== */
+
+.nav-link{
+    font-size:18px !important;
+}
+
+/* =====================================================
+PLOT MOBILE
+===================================================== */
 
 @media (max-width:768px){
 
     h1{
-        font-size:2.2rem !important;
-        text-align:center;
+        font-size:2rem !important;
     }
 
-    h2{
-        font-size:1.4rem !important;
+    iframe{
+        height:350px !important;
     }
 
-    .block-container{
-        padding-left:0.7rem;
-        padding-right:0.7rem;
+    .js-plotly-plot{
+        height:350px !important;
     }
+
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-# ---------------------------------------------------
+# =====================================================
+# SPLASH SCREEN
+# =====================================================
+
+with st.container():
+
+    st.markdown("""
+
+    <div style="
+    text-align:center;
+    padding:10px;
+    margin-bottom:20px;
+    animation:fadeIn 2s ease;
+    ">
+
+    <h1>⚡ SIGNALMAP AI</h1>
+
+    <p style="
+    color:#8be9fd;
+    font-size:18px;
+    ">
+    Synchronicity Intelligence System
+    </p>
+
+    </div>
+
+    """, unsafe_allow_html=True)
+
+# =====================================================
 # LOAD DATA
-# ---------------------------------------------------
+# =====================================================
 
 df = pd.read_csv("signals.csv")
 
-# ---------------------------------------------------
+# =====================================================
 # MOBILE MENU
-# ---------------------------------------------------
+# =====================================================
 
 selected = option_menu(
     menu_title=None,
-    options=["Home","Scanner","Network","AI","Registry"],
-    icons=["house","camera","diagram-3","cpu","table"],
+    options=["Home","Scanner","Constellation","AI","Registry"],
+    icons=["house","camera","stars","cpu","table"],
     orientation="horizontal"
 )
 
-# ---------------------------------------------------
+# =====================================================
 # HOME
-# ---------------------------------------------------
+# =====================================================
 
 if selected == "Home":
 
     dominant = df["numero"].value_counts().idxmax()
 
-    st.markdown("""
-
-    # ⚡ SIGNALMAP AI
-    ### Synchronicity Intelligence System
-
-    """)
-
     st.markdown(f"""
+
     <div class="glow-card">
 
     <h3 style="color:white;">
@@ -165,84 +263,30 @@ if selected == "Home":
     </h1>
 
     </div>
+
     """, unsafe_allow_html=True)
 
-    col1,col2,col3 = st.columns(3)
+    col1 = st.columns(1)[0]
 
     col1.metric("Signals", len(df))
-    col2.metric("Unique", df["numero"].nunique())
-    col3.metric("Patterns", df["tipo"].nunique())
-
-    st.divider()
-
-    # ---------------- GRAPH 1 ----------------
-
-    st.subheader("📈 Pattern Frequency")
-
-    type_count = df["tipo"].value_counts().reset_index()
-    type_count.columns = ["tipo", "cantidad"]
-
-    fig1 = px.bar(
-        type_count,
-        x="tipo",
-        y="cantidad",
-        text_auto=True,
-        template="plotly_dark"
-    )
-
-    st.plotly_chart(fig1, use_container_width=True)
-
-    # ---------------- GRAPH 2 ----------------
-
-    st.subheader("⏰ Time Heatmap")
-
-    time_count = df["hora"].value_counts().reset_index()
-    time_count.columns = ["hora", "cantidad"]
-
-    fig2 = px.line(
-        time_count,
-        x="hora",
-        y="cantidad",
-        markers=True,
-        template="plotly_dark"
-    )
-
-    st.plotly_chart(fig2, use_container_width=True)
-
-    # ---------------- GRAPH 3 ----------------
-
-    st.subheader("🧠 Dominant Numbers")
-
-    number_count = df["numero"].value_counts().reset_index().head(10)
-    number_count.columns = ["numero", "cantidad"]
-
-    fig3 = px.pie(
-        number_count,
-        names="numero",
-        values="cantidad",
-        hole=0.5,
-        template="plotly_dark"
-    )
-
-    st.plotly_chart(fig3, use_container_width=True)
 
     st.subheader("⚡ AI Insights")
 
-    st.info(f"Dominant number today: {dominant}")
-    st.info("Retro sequence activity detected")
-    st.info("Mirror patterns increasing")
-    st.info("Neural signal clusters active")
+    st.info(f"Dominant number detected today: {dominant}")
+    st.info("Retro sequence clusters active")
+    st.info("Mirror frequencies increasing")
+    st.info("Constellation mapping stabilized")
 
-# ---------------------------------------------------
-# SCANNER
-# ---------------------------------------------------
+# =====================================================
+# LIVE CAMERA / GALLERY
+# =====================================================
 
 if selected == "Scanner":
 
     st.title("📸 Live Signal Scanner")
 
     uploaded = st.file_uploader(
-        "Upload screenshot or image",
+        "Upload image or screenshot",
         type=["png","jpg","jpeg"]
     )
 
@@ -250,7 +294,7 @@ if selected == "Scanner":
 
         image = Image.open(uploaded)
 
-        st.image(image, use_container_width=True)
+        st.image(image,use_container_width=True)
 
         text = pytesseract.image_to_string(image)
 
@@ -263,15 +307,15 @@ if selected == "Scanner":
         st.subheader("⚡ Numbers Detected")
 
         for n in numbers:
-            st.success(f"Detected: {n}")
+            st.success(f"Detected frequency: {n}")
 
-# ---------------------------------------------------
-# NETWORK
-# ---------------------------------------------------
+# =====================================================
+# CONSTELLATION MAP
+# =====================================================
 
-if selected == "Network":
+if selected == "Constellation":
 
-    st.title("⚡ Tesla Signal Network")
+    st.title("🌌 Cosmic Constellation Map")
 
     G = nx.Graph()
 
@@ -282,7 +326,11 @@ if selected == "Network":
         for i in range(len(nums)-1):
             G.add_edge(nums[i], nums[i+1])
 
-    pos = nx.spring_layout(G)
+    pos = nx.spring_layout(
+        G,
+        seed=42,
+        k=1.5
+    )
 
     edge_x = []
     edge_y = []
@@ -298,8 +346,12 @@ if selected == "Network":
     edge_trace = go.Scatter(
         x=edge_x,
         y=edge_y,
-        mode='lines',
-        line=dict(width=1)
+        line=dict(
+            width=1.5,
+            color="#4cc9f0"
+        ),
+        hoverinfo='none',
+        mode='lines'
     )
 
     node_x=[]
@@ -320,8 +372,14 @@ if selected == "Network":
         mode='markers+text',
         text=node_text,
         textposition="top center",
+
         marker=dict(
-            size=24
+            size=38,
+            color="#ffffff",
+            line=dict(
+                width=2,
+                color="#00c6ff"
+            )
         )
     )
 
@@ -330,15 +388,39 @@ if selected == "Network":
     )
 
     fig.update_layout(
+
         template="plotly_dark",
-        height=800
+
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+
+        xaxis=dict(
+            showgrid=False,
+            zeroline=False,
+            visible=False
+        ),
+
+        yaxis=dict(
+            showgrid=False,
+            zeroline=False,
+            visible=False
+        ),
+
+        height=500,
+
+        margin=dict(
+            l=0,
+            r=0,
+            t=0,
+            b=0
+        )
     )
 
     st.plotly_chart(fig,use_container_width=True)
 
-# ---------------------------------------------------
-# AI
-# ---------------------------------------------------
+# =====================================================
+# AI DETECTION
+# =====================================================
 
 if selected == "AI":
 
@@ -368,18 +450,18 @@ if selected == "AI":
     for p in patterns:
         st.success(p)
 
-# ---------------------------------------------------
+# =====================================================
 # REGISTRY
-# ---------------------------------------------------
+# =====================================================
 
 if selected == "Registry":
 
     st.title("📂 Signal Registry")
 
-    with st.expander("View Full Data"):
+    with st.expander("View Full Registry"):
 
         st.dataframe(
             df,
             use_container_width=True,
-            height=500
+            height=400
         )
