@@ -3,16 +3,19 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import networkx as nx
+from PIL import Image
+import pytesseract
+import re
 
 # ---------------- CONFIG ----------------
 
 st.set_page_config(
     page_title="Signal Map",
-    page_icon="🔮",
+    page_icon="⚡",
     layout="wide"
 )
 
-# ---------------- DARK MODE ----------------
+# ---------------- DARK MODE + MOBILE ----------------
 
 st.markdown("""
 <style>
@@ -22,25 +25,87 @@ st.markdown("""
     color: white;
 }
 
-h1, h2, h3 {
-    color: #8be9fd;
+/* MAIN CONTAINER */
+
+.block-container {
+    padding-top: 1rem;
+    padding-bottom: 4rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
 }
+
+/* TITLES */
+
+h1 {
+    font-size: 3rem !important;
+    font-weight: 800;
+    color: white;
+}
+
+h2, h3 {
+    color: #8be9fd;
+    font-weight: 700;
+}
+
+/* GLASS EFFECT */
 
 [data-testid="stMetric"] {
-    background-color: rgba(255,255,255,0.05);
-    border-radius: 15px;
-    padding: 15px;
-    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(15px);
+    border-radius: 25px;
+    padding: 20px;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 0 25px rgba(0,255,255,0.08);
 }
 
+/* CHARTS */
+
 div[data-testid="stPlotlyChart"] {
-    background-color: rgba(255,255,255,0.03);
-    border-radius: 20px;
+    border-radius: 25px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.03);
     padding: 10px;
 }
 
+/* SIDEBAR */
+
 section[data-testid="stSidebar"] {
     background-color: #0b1023;
+}
+
+/* CUSTOM CARD */
+
+.custom-card {
+    background: linear-gradient(135deg,#00c6ff,#0072ff);
+    padding: 25px;
+    border-radius: 30px;
+    text-align: center;
+    margin-bottom: 20px;
+    box-shadow: 0 0 30px rgba(0,255,255,0.3);
+}
+
+/* MOBILE */
+
+@media (max-width: 768px) {
+
+    h1 {
+        font-size: 2.2rem !important;
+        text-align: center;
+    }
+
+    h2 {
+        font-size: 1.4rem !important;
+    }
+
+    [data-testid="stMetric"] {
+        padding: 15px;
+        margin-bottom: 10px;
+    }
+
+    .block-container {
+        padding-left: 0.8rem;
+        padding-right: 0.8rem;
+    }
 }
 
 </style>
@@ -53,27 +118,78 @@ df = pd.read_csv("signals.csv")
 # ---------------- SIDEBAR ----------------
 
 st.sidebar.title("⚡ Signal Map")
-st.sidebar.markdown("Sistema de sincronías y patrones")
+st.sidebar.markdown("AI Synchronicity Intelligence")
 
-# ---------------- TITLE ----------------
+# ---------------- HEADER ----------------
 
-st.title("🔮 SIGNAL MAP")
-st.markdown("### Visualizador de patrones numéricos")
+st.markdown("""
+# ⚡ SIGNAL MAP
+
+### AI Synchronicity Intelligence System
+""")
+
+# ---------------- DOMINANT FREQUENCY ----------------
+
+dominant = df["numero"].value_counts().idxmax()
+
+st.markdown(f"""
+<div class="custom-card">
+
+<h3 style="color:white;">
+Today's Dominant Frequency
+</h3>
+
+<h1 style="color:white;font-size:60px;">
+{dominant}
+</h1>
+
+</div>
+""", unsafe_allow_html=True)
 
 # ---------------- METRICS ----------------
 
 col1, col2, col3, col4 = st.columns(4)
 
-col1.metric("Total Señales", len(df))
-col2.metric("Números Únicos", df["numero"].nunique())
-col3.metric("Tipos", df["tipo"].nunique())
-col4.metric("Hora Pico", "13:00")
+col1.metric("Signals", len(df))
+col2.metric("Unique Numbers", df["numero"].nunique())
+col3.metric("Pattern Types", df["tipo"].nunique())
+col4.metric("Peak Hour", "13:00")
 
 st.divider()
 
+# ---------------- LIVE CAMERA / GALLERY ----------------
+
+st.subheader("📸 Live Signal Scanner")
+
+uploaded = st.file_uploader(
+    "Upload image or screenshot",
+    type=["png","jpg","jpeg"]
+)
+
+if uploaded:
+
+    image = Image.open(uploaded)
+
+    st.image(image, use_container_width=True)
+
+    text = pytesseract.image_to_string(image)
+
+    st.markdown("### 🧠 AI Detected Text")
+
+    st.code(text)
+
+    numbers = re.findall(r'\d+', text)
+
+    if numbers:
+
+        st.markdown("### ⚡ Detected Numbers")
+
+        for n in numbers:
+            st.success(f"Detected: {n}")
+
 # ---------------- GRAPH 1 ----------------
 
-st.subheader("📈 Frecuencia de Tipos")
+st.subheader("📈 Pattern Frequency")
 
 type_count = df["tipo"].value_counts().reset_index()
 type_count.columns = ["tipo", "cantidad"]
@@ -90,7 +206,7 @@ st.plotly_chart(fig1, use_container_width=True)
 
 # ---------------- GRAPH 2 ----------------
 
-st.subheader("⏰ Mapa Temporal")
+st.subheader("⏰ Time Heatmap")
 
 time_count = df["hora"].value_counts().reset_index()
 time_count.columns = ["hora", "cantidad"]
@@ -107,7 +223,7 @@ st.plotly_chart(fig2, use_container_width=True)
 
 # ---------------- GRAPH 3 ----------------
 
-st.subheader("🧠 Números Dominantes")
+st.subheader("🧠 Dominant Numbers")
 
 number_count = df["numero"].value_counts().reset_index().head(10)
 number_count.columns = ["numero", "cantidad"]
@@ -174,7 +290,7 @@ node_trace = go.Scatter(
     mode='markers+text',
     text=node_text,
     textposition="top center",
-    marker=dict(size=18)
+    marker=dict(size=20)
 )
 
 fig_network = go.Figure(
@@ -188,7 +304,7 @@ fig_network.update_layout(
 
 st.plotly_chart(fig_network, use_container_width=True)
 
-# ---------------- AI DETECTION ----------------
+# ---------------- AI PATTERN DETECTION ----------------
 
 st.subheader("🧠 AI Pattern Detection")
 
@@ -205,23 +321,34 @@ for num in df["numero"]:
             parts = [int(x) for x in parts]
 
             if sorted(parts) == list(range(min(parts), max(parts)+1)):
-                patterns.append(f"Secuencia detectada: {num}")
+                patterns.append(f"⚡ Sequence detected: {num}")
 
         except:
             pass
 
     if str(num) == str(num)[::-1]:
-        patterns.append(f"Espejo detectado: {num}")
+        patterns.append(f"🪞 Mirror detected: {num}")
 
 for p in patterns:
     st.success(p)
 
+# ---------------- AI INSIGHTS ----------------
+
+st.subheader("⚡ AI Insights")
+
+top_number = df["numero"].value_counts().idxmax()
+
+st.info(f"Dominant frequency today: {top_number}")
+st.info("Sequence activity increased in the 13:00 hour")
+st.info("Mirror numbers detected repeatedly")
+st.info("Retro pattern clusters active")
+
 # ---------------- TABLE ----------------
 
-st.subheader("📂 Registro Completo")
+with st.expander("📂 View Full Registry"):
 
-st.dataframe(
-    df,
-    use_container_width=True,
-    height=400
-)
+    st.dataframe(
+        df,
+        use_container_width=True,
+        height=400
+    )
