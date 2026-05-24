@@ -1,0 +1,31 @@
+numero,hora,contexto,tipo,fecha
+11:11,11:11,reloj celular,espejo,2026-05-24
+22,11:22,placa estacionamiento,dominante,2026-05-24
+34,11:34,ticket compra,secuencia,2026-05-24
+43,11:43,anuncio digital,mirror,2026-05-24
+777,11:47,folio app,repeticion,2026-05-24
+49,11:49,placa vehiculo,power,2026-05-24
+12:12,12:12,reloj cafeteria,espejo,2026-05-24
+7,12:07,numero repetido,dominante,2026-05-24
+22,12:22,folio recibido,dominante,2026-05-24
+333,12:33,likes publicacion,secuencia,2026-05-24
+34-43,12:34,sincronia espejo,mirror,2026-05-24
+56,12:56,precio observado,alto,2026-05-24
+1:11,13:11,reloj computadora,espejo,2026-05-24
+8,13:08,numero infinito,abundancia,2026-05-24
+2-4-7-12-22-49,13:12,linea motor melate,secuencia,2026-05-24
+3-8-12-22-34-43,13:22,linea abundancia,secuencia,2026-05-24
+33-34-35-36,13:33,secuencia retro,retro,2026-05-24
+5-6-7,13:05,bloque retro consecutivo,retro,2026-05-24
+111,13:11,notificacion repetida,repeticion,2026-05-24
+222,13:22,repeticion visual,repeticion,2026-05-24
+43,13:43,captura recurrente,dominante,2026-05-24
+36,13:36,numero caliente retro,retro,2026-05-24
+7:07,13:07,hora espejo,mirror,2026-05-24
+12-22,13:20,conexion repetida,conexion,2026-05-24
+52,12:52,resultado melate alto,alto,2026-05-24
+50,12:50,resultado recurrente,alto,2026-05-24
+05-06-07,13:06,secuencia visual retro,retro,2026-05-24
+13-14,13:14,bloque consecutivo melate,secuencia,2026-05-24
+22-32,13:23,conexion revancha,conexion,2026-05-24
+43-48,13:48,conexion revanchita,conexion,2026-05-24
