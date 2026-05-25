@@ -21,9 +21,15 @@ from datetime import datetime
 
 if not firebase_admin._apps:
 
-    cred = credentials.Certificate(
-        "firebase_config.json"
-    )
+    import json
+
+firebase_secret = json.loads(
+    st.secrets["firebase"]
+)
+
+cred = credentials.Certificate(
+    firebase_secret
+)
 
     firebase_admin.initialize_app(cred)
 
