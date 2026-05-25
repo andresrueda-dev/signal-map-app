@@ -27,6 +27,12 @@ firebase_secret = json.loads(
     st.secrets["firebase"]
 )
 
+import json
+
+firebase_secret = json.loads(
+    st.secrets["firebase"]
+)
+
 cred = credentials.Certificate(
     firebase_secret
 )
