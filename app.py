@@ -1,26 +1,19 @@
+
+
+          
+         # ==================================================
+# IMPORTS
+# ==================================================
+
 import streamlit as st
-
 import plotly.graph_objects as go
-
 import numpy as np
-
 import pandas as pd
-
 import json
-
 import os
-
 import glob
-
 import re
-
 import easyocr
-
-import cv2
-
-from PIL import Image
-
-from datetime import datetime
 
 from PIL import Image
 from datetime import datetime
@@ -30,31 +23,38 @@ from datetime import datetime
 # ==================================================
 
 st.set_page_config(
+
     page_title="Signal Map AI",
+
     layout="wide"
 )
 
 # ==================================================
-# ESTILO PREMIUM
+# ESTILO VISUAL
 # ==================================================
 
 st.markdown("""
+
 <style>
 
 .stApp{
+
     background-color:#050816;
     color:white;
 }
 
 [data-testid="stSidebar"]{
+
     background-color:#0B1026;
 }
 
 h1,h2,h3,h4{
+
     color:#C8B6FF;
 }
 
 div.stButton > button{
+
     background:#7B61FF;
     color:white;
     border-radius:12px;
@@ -64,419 +64,368 @@ div.stButton > button{
 }
 
 div.stMetric{
+
     background-color:#11162A;
     padding:10px;
     border-radius:10px;
 }
 
 </style>
+
 """, unsafe_allow_html=True)
 
 # ==================================================
-# SIDEBAR
+# CREAR CARPETA
+# ==================================================
+
+os.makedirs("signals", exist_ok=True)
+
+# ==================================================
+# MENÚ PRINCIPAL
 # ==================================================
 
 st.sidebar.title("SIGNAL MAP AI")
 
 page = st.sidebar.radio(
-    "Navegación",
+
+    "Menú Principal",
+
     [
-        "Señal en Vivo",
-        "Agregar Registro",
+
+        "Registro Rápido",
+
+        "Constelación del Día",
+
+        "Cargar Imagen",
+
         "Diario de Señales",
+
         "Timeline",
-        "Insights"
+
+        "Insights IA"
     ]
 )
 
 # ==================================================
-# GUARDAR SEÑAL
+# CLASIFICADOR IA
 # ==================================================
 
-def save_signal(signal_data):
+def classify_signal(signal):
 
-    os.makedirs("signals", exist_ok=True)
+    clean_signal = signal.replace(":", "")
 
-    filename = f"signals/{signal_data['date']}.json"
+    # ==========================================
+    # HORA ESPEJO
+    # ==========================================
 
-    with open(filename, "w", encoding="utf-8") as f:
-        json.dump(signal_data, f, indent=4)
+    if ":" in signal:
 
-# ==================================================
-# CARGAR SEÑAL
-# ==================================================
+        parts = signal.split(":")
 
-def load_signal(date):
+        if len(parts) == 2:
 
-    filename = f"signals/{date}.json"
+            if parts[0] == parts[1]:
 
-    if os.path.exists(filename):
+                return "Hora Espejo"
 
-        with open(filename, "r", encoding="utf-8") as f:
-            return json.load(f)
+            elif parts[0] == parts[1][::-1]:
 
-    return None
+                return "Hora Reflejo"
 
-# ==================================================
-# MOTOR DE ANÁLISIS
-# ==================================================
+    # ==========================================
+    # REPETITIVO
+    # ==========================================
 
-def analyze_pattern(nodes):
+    if len(set(clean_signal)) == 1:
 
-    x_values = [n[0] for n in nodes]
-    y_values = [n[1] for n in nodes]
+        return "Número Repetitivo"
 
-    symmetry_score = round(
-        1 - abs(np.mean(x_values)),
-        2
+    # ==========================================
+    # ASCENDENTE
+    # ==========================================
+
+    ascending = ''.join(
+        sorted(clean_signal)
     )
 
-    vertical_alignment = np.std(x_values) < 0.25
+    if clean_signal == ascending:
 
-    lower_density = np.mean(y_values) < 0
+        return "Secuencia Ascendente"
 
-    reading = []
+    # ==========================================
+    # DESCENDENTE
+    # ==========================================
 
-    if symmetry_score > 0.75:
-        reading.append(
-            "Alta alineación energética detectada."
-        )
+    descending = ''.join(
+        sorted(clean_signal, reverse=True)
+    )
 
-    if vertical_alignment:
-        reading.append(
-            "Se detectó una fuerte estructura de eje central."
-        )
+    if clean_signal == descending:
 
-    if lower_density:
-        reading.append(
-            "La concentración inferior sugiere manifestación y estabilidad."
-        )
+        return "Secuencia Descendente"
 
-    if len(reading) == 0:
-        reading.append(
-            "La estructura muestra exploración y expansión."
-        )
-
-    return {
-        "pattern_type": "Estructura Humanoide",
-        "energy_type": "Convergente",
-        "symmetry_score": symmetry_score,
-        "reading": " ".join(reading)
-    }
+    return "Patrón General"
 
 # ==================================================
-# NODOS BASE
+# REGISTRO RÁPIDO
 # ==================================================
 
-nodes = [
+if page == "Registro Rápido":
 
-    (0.00, 0.60),
-    (-0.15, 0.50),
-    (0.15, 0.50),
-
-    (-0.25, 0.30),
-    (0.25, 0.30),
-
-    (-0.10, 0.10),
-    (0.10, 0.10),
-
-    (0.00, -0.10),
-
-    (-0.15, -0.30),
-    (0.15, -0.30),
-
-    (-0.05, -0.55),
-    (0.05, -0.55)
-
-]
-
-# ==================================================
-# SEÑAL EN VIVO
-# ==================================================
-
-if page == "Señal en Vivo":
-
-    st.title("SIGNAL MAP AI")
+    st.title("Registro Rápido de Señales")
 
     st.markdown("""
-### Sistema Inteligente de Patrones
 
-Analiza • Interpreta • Guarda • Visualiza
+Aquí puedes registrar:
+
+• Horas espejo  
+• Números repetitivos  
+• Secuencias  
+• Sincronías  
+• Señales del día
+
 """)
 
-    analysis = analyze_pattern(nodes)
+    signal_input = st.text_input(
 
-    x = [n[0] for n in nodes]
-    y = [n[1] for n in nodes]
+        "Escribe una señal",
 
-    fig = go.Figure()
-
-    for i in range(len(nodes)-1):
-
-        fig.add_trace(
-            go.Scatter(
-                x=[nodes[i][0], nodes[i+1][0]],
-                y=[nodes[i][1], nodes[i+1][1]],
-                mode="lines",
-                line=dict(
-                    width=2,
-                    color="#7B61FF"
-                ),
-                hoverinfo="none",
-                showlegend=False
-            )
-        )
-
-    fig.add_trace(
-        go.Scatter(
-            x=x,
-            y=y,
-            mode="markers+text",
-
-            marker=dict(
-                size=18,
-                color="#B388FF",
-                line=dict(
-                    width=2,
-                    color="white"
-                )
-            ),
-
-            text=[
-                str(i+1)
-                for i in range(len(nodes))
-            ],
-
-            textposition="top center",
-
-            hovertemplate=
-            "<b>Nodo %{text}</b><extra></extra>"
-        )
+        placeholder="Ejemplo: 11:11"
     )
 
-    fig.update_layout(
+    today = str(datetime.now().date())
 
-        height=700,
+    signal_file = f"signals/{today}.json"
 
-        paper_bgcolor="#050816",
-        plot_bgcolor="#050816",
+    # ==========================================
+    # CARGAR DATOS
+    # ==========================================
 
-        font=dict(
-            color="white"
-        ),
+    if os.path.exists(signal_file):
 
-        xaxis=dict(
-            visible=False
-        ),
+        with open(signal_file, "r", encoding="utf-8") as f:
 
-        yaxis=dict(
-            visible=False
-        )
-    )
+            daily_data = json.load(f)
 
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
+    else:
 
-    col1, col2, col3 = st.columns(3)
+        daily_data = {
 
-    with col1:
+            "date": today,
 
-        st.metric(
-            "Simetría",
-            f"{analysis['symmetry_score'] * 100:.0f}%"
-        )
+            "signals": []
+        }
 
-    with col2:
-
-        st.metric(
-            "Patrón",
-            analysis["pattern_type"]
-        )
-
-    with col3:
-
-        st.metric(
-            "Energía",
-            analysis["energy_type"]
-        )
-
-    st.subheader("Lectura de Patrón")
-
-    st.info(
-        analysis["reading"]
-    )
+    # ==========================================
+    # REGISTRAR SEÑAL
+    # ==========================================
 
     if st.button("Guardar Señal"):
 
-        signal_entry = {
+        if signal_input != "":
 
-            "date": str(datetime.now().date()),
-
-            "title": "Formación Central",
-
-            "pattern_type": analysis["pattern_type"],
-
-            "energy_type": analysis["energy_type"],
-
-            "symmetry_score": analysis["symmetry_score"],
-
-            "intensity": 92,
-
-            "reading": analysis["reading"],
-
-            "created_at": str(datetime.now())
-        }
-
-        save_signal(signal_entry)
-
-        st.success(
-            "Señal guardada correctamente."
-        )
-
-# ==================================================
-# AGREGAR REGISTRO
-# ==================================================
-
-if page == "Agregar Registro":
-
-    st.title("Agregar Registro")
-
-    input_mode = st.radio(
-
-        "Selecciona el tipo de entrada",
-
-        [
-            "Bloques Numéricos",
-            "Detección con Cámara",
-            "Imagen desde Galería"
-        ]
-    )
-
-    # ==================================================
-    # BLOQUES NUMÉRICOS
-    # ==================================================
-
-    if input_mode == "Bloques Numéricos":
-
-        st.subheader("Registro de Señales del Día")
-
-        signal_blocks = st.text_area(
-
-            "Ingresa señales separadas por espacios o líneas",
-
-            height=250,
-
-            placeholder="""
-111
-222
-777
-11:11
-444
-888
-333
-"""
-        )
-
-        if st.button("Analizar Señales"):
-
-            cleaned_text = signal_blocks.replace("\n", " ")
-
-            signals = cleaned_text.split()
-
-            detected_numbers = []
-
-            for signal in signals:
-
-                nums = re.findall(r'\d+', signal)
-
-                for n in nums:
-                    detected_numbers.append(n)
-
-            frequency_map = {}
-
-            for num in detected_numbers:
-
-                if num in frequency_map:
-                    frequency_map[num] += 1
-                else:
-                    frequency_map[num] = 1
-
-            dominant_number = max(
-                frequency_map,
-                key=frequency_map.get
+            signal_type = classify_signal(
+                signal_input
             )
 
-            dominant_count = frequency_map[
-                dominant_number
-            ]
+            signal_data = {
 
-            digit_energy = 0
+                "signal": signal_input,
 
-            for number in detected_numbers:
+                "type": signal_type,
 
-                digit_energy += sum(
-                    map(int, number)
-                )
+                "timestamp":
+                str(datetime.now())
+            }
 
-            st.subheader("Resultados")
-
-            col1, col2, col3 = st.columns(3)
-
-            with col1:
-
-                st.metric(
-                    "Señales Detectadas",
-                    len(detected_numbers)
-                )
-
-            with col2:
-
-                st.metric(
-                    "Número Dominante",
-                    dominant_number
-                )
-
-            with col3:
-
-                st.metric(
-                    "Frecuencia Total",
-                    digit_energy
-                )
-
-            st.subheader("Frecuencias")
-
-            freq_data = pd.DataFrame({
-
-                "Número":
-                list(frequency_map.keys()),
-
-                "Repeticiones":
-                list(frequency_map.values())
-
-            })
-
-            st.dataframe(
-                freq_data,
-                use_container_width=True
+            daily_data["signals"].append(
+                signal_data
             )
+
+            with open(
+
+                signal_file,
+
+                "w",
+
+                encoding="utf-8"
+
+            ) as f:
+
+                json.dump(
+                    daily_data,
+                    f,
+                    indent=4
+                )
+
+            st.success(
+                f"Señal guardada como: {signal_type}"
+            )
+
+    # ==========================================
+    # MOSTRAR SEÑALES
+    # ==========================================
+
+    st.subheader("Señales Registradas Hoy")
+
+    if len(daily_data["signals"]) == 0:
+
+        st.warning(
+            "Aún no hay señales registradas."
+        )
+
+    else:
+
+        freq_map = {}
+
+        for item in daily_data["signals"]:
+
+            signal = item["signal"]
+
+            if signal in freq_map:
+
+                freq_map[signal] += 1
+
+            else:
+
+                freq_map[signal] = 1
+
+            st.markdown(f"""
+
+### {signal}
+
+• Tipo:
+{item['type']}
+
+• Hora:
+{item['timestamp']}
+
+""")
+
+# ==================================================
+# CONSTELACIÓN DEL DÍA
+# ==================================================
+
+if page == "Constelación del Día":
+
+    st.title("Constelación del Día")
+
+    today = str(datetime.now().date())
+
+    signal_file = f"signals/{today}.json"
+
+    if os.path.exists(signal_file):
+
+        with open(signal_file, "r", encoding="utf-8") as f:
+
+            daily_data = json.load(f)
+
+        freq_map = {}
+
+        for item in daily_data["signals"]:
+
+            signal = item["signal"]
+
+            if signal in freq_map:
+
+                freq_map[signal] += 1
+
+            else:
+
+                freq_map[signal] = 1
+
+        signals = list(freq_map.keys())
+
+        repetitions = list(freq_map.values())
+
+        if len(signals) > 0:
 
             fig = go.Figure()
 
+            angles = np.linspace(
+
+                0,
+
+                2*np.pi,
+
+                len(signals),
+
+                endpoint=False
+            )
+
+            radius = repetitions
+
+            x = radius * np.cos(angles)
+
+            y = radius * np.sin(angles)
+
+            # ======================================
+            # LÍNEAS
+            # ======================================
+
+            for i in range(len(x)):
+
+                next_i = (i + 1) % len(x)
+
+                fig.add_trace(
+
+                    go.Scatter(
+
+                        x=[x[i], x[next_i]],
+
+                        y=[y[i], y[next_i]],
+
+                        mode="lines",
+
+                        line=dict(
+
+                            width=2,
+
+                            color="#7B61FF"
+                        ),
+
+                        showlegend=False
+                    )
+                )
+
+            # ======================================
+            # NODOS
+            # ======================================
+
             fig.add_trace(
 
-                go.Bar(
+                go.Scatter(
 
-                    x=list(frequency_map.keys()),
+                    x=x,
 
-                    y=list(frequency_map.values())
+                    y=y,
+
+                    mode="markers+text",
+
+                    marker=dict(
+
+                        size=[
+                            r * 15
+                            for r in repetitions
+                        ],
+
+                        color="#B388FF",
+
+                        line=dict(
+                            width=2,
+                            color="white"
+                        )
+                    ),
+
+                    text=signals,
+
+                    textposition="top center"
                 )
             )
 
             fig.update_layout(
 
-                title="Mapa de Frecuencias",
+                height=700,
 
                 paper_bgcolor="#050816",
 
@@ -484,6 +433,14 @@ if page == "Agregar Registro":
 
                 font=dict(
                     color="white"
+                ),
+
+                xaxis=dict(
+                    visible=False
+                ),
+
+                yaxis=dict(
+                    visible=False
                 )
             )
 
@@ -492,160 +449,111 @@ if page == "Agregar Registro":
                 use_container_width=True
             )
 
-            reading = f"""
-La secuencia dominante del día fue {dominant_number},
-repitiéndose {dominant_count} veces.
+            # ======================================
+            # IA
+            # ======================================
 
-La frecuencia acumulativa total alcanzó
-un valor de {digit_energy}.
+            dominant_signal = max(
+                freq_map,
+                key=freq_map.get
+            )
 
-El sistema detecta concentración energética
-sobre patrones repetitivos y sincronías
-numéricas persistentes.
-"""
+            st.subheader(
+                "Lectura IA"
+            )
 
-            st.subheader("Lectura Automática")
+            st.info(f"""
 
-            st.info(reading)
+La señal dominante del día es {dominant_signal}.
 
-            if st.button("Guardar Registro Diario"):
+La constelación muestra concentración
+sobre frecuencias repetitivas y patrones
+de sincronía persistente.
 
-                signal_entry = {
+El mapa energético presenta nodos
+interconectados con expansión radial.
 
-                    "date": str(datetime.now().date()),
+""")
 
-                    "title": "Registro Numérico Diario",
+        else:
 
-                    "pattern_type": "Frecuencia Numérica",
+            st.warning(
+                "No hay señales suficientes."
+            )
 
-                    "energy_type": "Sincronía",
+    else:
 
-                    "symmetry_score": 0.90,
-
-                    "intensity": digit_energy,
-
-                    "dominant_number":
-                    dominant_number,
-
-                    "signals":
-                    detected_numbers,
-
-                    "reading":
-                    reading,
-
-                    "created_at":
-                    str(datetime.now())
-                }
-
-                save_signal(signal_entry)
-
-                st.success(
-                    "Registro guardado correctamente."
-                )
-
-    # ==================================================
-    # CÁMARA
-    # ==================================================
-
-    elif input_mode == "Detección con Cámara":
-
-        st.subheader("Escaneo en Tiempo Real")
-
-        camera_image = st.camera_input(
-            "Captura una señal"
+        st.warning(
+            "Aún no existe registro para hoy."
         )
 
-        if camera_image is not None:
+# ==================================================
+# CARGAR IMAGEN
+# ==================================================
 
-            image = Image.open(camera_image)
+if page == "Cargar Imagen":
 
-            st.image(
-                image,
-                caption="Imagen Capturada",
-                use_container_width=True
-            )
+    st.title("Cargar Imagen de Señales")
 
-            reader = easyocr.Reader(['en'])
+    uploaded_file = st.file_uploader(
 
-            results = reader.readtext(
-                np.array(image)
-            )
+        "Selecciona una imagen",
 
-            detected_text = ""
+        type=["png", "jpg", "jpeg"]
+    )
 
-            for result in results:
+    if uploaded_file is not None:
 
-                detected_text += result[1] + " "
+        image = Image.open(uploaded_file)
 
-            st.subheader("Contenido Detectado")
+        st.image(
 
-            st.write(detected_text)
+            image,
 
-            numbers = re.findall(
-                r'\d+',
-                detected_text
-            )
+            caption="Imagen Cargada",
 
-            digit_sum = sum(
-                [sum(map(int, num)) for num in numbers]
-            )
-
-            st.metric(
-                "Frecuencia Energética",
-                digit_sum
-            )
-
-    # ==================================================
-    # GALERÍA
-    # ==================================================
-
-    elif input_mode == "Imagen desde Galería":
-
-        uploaded_file = st.file_uploader(
-
-            "Sube una imagen",
-
-            type=["png", "jpg", "jpeg"]
+            use_container_width=True
         )
 
-        if uploaded_file is not None:
+        reader = easyocr.Reader(['en'])
 
-            image = Image.open(uploaded_file)
+        results = reader.readtext(
+            np.array(image)
+        )
 
-            st.image(
-                image,
-                caption="Imagen Analizada",
-                use_container_width=True
+        detected_text = ""
+
+        for result in results:
+
+            detected_text += result[1] + " "
+
+        st.subheader(
+            "Texto Detectado"
+        )
+
+        st.write(
+            detected_text
+        )
+
+        numbers = re.findall(
+            r'\d+',
+            detected_text
+        )
+
+        if len(numbers) > 0:
+
+            st.subheader(
+                "Números Detectados"
             )
 
-            reader = easyocr.Reader(['en'])
+            for n in numbers:
 
-            results = reader.readtext(
-                np.array(image)
-            )
+                st.markdown(f"• {n}")
 
-            detected_text = ""
+        else:
 
-            for result in results:
-
-                detected_text += result[1] + " "
-
-            st.subheader("Texto Detectado")
-
-            st.write(detected_text)
-
-            numbers = re.findall(
-                r'\d+',
-                detected_text
-            )
-
-            digit_sum = sum(
-                [sum(map(int, num)) for num in numbers]
-            )
-
-            st.metric(
-                "Frecuencia Detectada",
-                digit_sum
+            st.warning(
+                "No se detectaron números."
             )
 
 # ==================================================
@@ -656,53 +564,43 @@ if page == "Diario de Señales":
 
     st.title("Diario de Señales")
 
-    selected_date = st.date_input(
-        "Selecciona una fecha"
+    files = sorted(
+        glob.glob("signals/*.json")
     )
 
-    signal = load_signal(
-        str(selected_date)
-    )
+    if len(files) == 0:
 
-    if signal:
-
-        st.subheader(
-            signal["title"]
-        )
-
-        col1, col2 = st.columns(2)
-
-        with col1:
-
-            st.metric(
-                "Simetría",
-                f"{signal['symmetry_score'] * 100:.0f}%"
-            )
-
-        with col2:
-
-            st.metric(
-                "Intensidad",
-                signal["intensity"]
-            )
-
-        st.markdown(
-            f"### Tipo de Patrón: {signal['pattern_type']}"
-        )
-
-        st.markdown(
-            f"### Tipo de Energía: {signal['energy_type']}"
-        )
-
-        st.info(
-            signal["reading"]
+        st.warning(
+            "Aún no hay registros."
         )
 
     else:
 
-        st.warning(
-            "No existe una señal guardada para esta fecha."
-        )
+        for file in reversed(files):
+
+            with open(file, "r", encoding="utf-8") as f:
+
+                data = json.load(f)
+
+            st.subheader(
+                data["date"]
+            )
+
+            if "signals" in data:
+
+                for item in data["signals"]:
+
+                    st.markdown(f"""
+
+### {item['signal']}
+
+• Tipo:
+{item['type']}
+
+• Hora:
+{item['timestamp']}
+
+""")
 
 # ==================================================
 # TIMELINE
@@ -719,75 +617,104 @@ if page == "Timeline":
     if len(files) == 0:
 
         st.warning(
-            "Aún no hay señales guardadas."
-        )
-
-    for file in files:
-
-        with open(file, "r", encoding="utf-8") as f:
-
-            signal = json.load(f)
-
-            st.markdown(f"""
----
-## {signal['date']}
-
-### {signal['pattern_type']}
-
-**Energía**
-{signal['energy_type']}
-
-**Lectura**
-{signal['reading']}
-""")
-
-# ==================================================
-# INSIGHTS
-# ==================================================
-
-if page == "Insights":
-
-    st.title("Insights")
-
-    files = sorted(
-        glob.glob("signals/*.json")
-    )
-
-    if len(files) == 0:
-
-        st.warning(
-            "No hay suficientes señales guardadas."
+            "No hay señales guardadas."
         )
 
     else:
 
-        symmetry_scores = []
+        timeline_data = []
 
         for file in files:
 
             with open(file, "r", encoding="utf-8") as f:
 
-                signal = json.load(f)
+                data = json.load(f)
 
-                symmetry_scores.append(
-                    signal["symmetry_score"]
-                )
+            total = len(data["signals"])
 
-        avg_symmetry = np.mean(
-            symmetry_scores
+            timeline_data.append({
+
+                "Fecha": data["date"],
+
+                "Cantidad": total
+            })
+
+        df = pd.DataFrame(
+            timeline_data
+        )
+
+        st.dataframe(
+            df,
+            use_container_width=True
+        )
+
+# ==================================================
+# INSIGHTS IA
+# ==================================================
+
+if page == "Insights IA":
+
+    st.title("Insights IA")
+
+    files = sorted(
+        glob.glob("signals/*.json")
+    )
+
+    total_signals = 0
+
+    pattern_count = {}
+
+    for file in files:
+
+        with open(file, "r", encoding="utf-8") as f:
+
+            data = json.load(f)
+
+        total_signals += len(
+            data["signals"]
+        )
+
+        for item in data["signals"]:
+
+            signal_type = item["type"]
+
+            if signal_type in pattern_count:
+
+                pattern_count[signal_type] += 1
+
+            else:
+
+                pattern_count[signal_type] = 1
+
+    st.metric(
+        "Total de Señales",
+        total_signals
+    )
+
+    if len(pattern_count) > 0:
+
+        dominant_pattern = max(
+            pattern_count,
+            key=pattern_count.get
         )
 
         st.metric(
-            "Promedio de Simetría",
-            f"{avg_symmetry * 100:.0f}%"
+            "Patrón Dominante",
+            dominant_pattern
         )
 
-        st.markdown("""
-### Lectura General
+        st.subheader(
+            "Lectura General IA"
+        )
 
-Las señales recientes muestran incremento
-en patrones repetitivos y sincronías.
+        st.info(f"""
 
-El sistema detecta consolidación
-de estructuras numéricas dominantes.
+El patrón dominante registrado es:
+
+{dominant_pattern}
+
+La IA detecta persistencia de sincronías
+y repetición estructural dentro de los
+registros diarios.
+
 """)
