@@ -1,7 +1,6 @@
 streamlit
-plotly
 pandas
 numpy
-opencv-python-headless
-pillow
-easyocr
+plotly
+scikit-learn
+scipy
