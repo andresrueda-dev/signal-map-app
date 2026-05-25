@@ -97,7 +97,7 @@ os.makedirs("signals", exist_ok=True)
 
     "Insights IA",
 
-    "Predicción Numérica"
+    "Predicción Numérica",
 ]
 
 # ==================================================
