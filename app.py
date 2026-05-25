@@ -1,970 +1,415 @@
+# =========================
+# SIGNALMAP IA - CORE ENGINE
+# =========================
+
 import streamlit as st
-import plotly.graph_objects as go
-import plotly.express as px
-import numpy as np
 import pandas as pd
-import os
-import re
-import easyocr
-import firebase_admin
-
-from firebase_admin import credentials
-from firebase_admin import firestore
-from PIL import Image
+import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
 from datetime import datetime
+import random
+import math
 
-# ==================================================
-# FIREBASE INIT
-# ==================================================
-
-if not firebase_admin._apps:
-
-    cred = credentials.Certificate(
-        dict(st.secrets["firebase"])
-    )
-
-    firebase_admin.initialize_app(
-        cred
-    )
-
-db = firestore.client()
-
-# ==================================================
-# CONFIGURACIÓN GENERAL
-# ==================================================
+# =========================
+# PAGE CONFIG
+# =========================
 
 st.set_page_config(
-
-    page_title="Signal Map AI",
-
-    layout="wide"
+    page_title="SignalMap IA",
+    layout="wide",
+    page_icon="🧠"
 )
 
-# ==================================================
-# ESTILO VISUAL
-# ==================================================
+# =========================
+# STYLE
+# =========================
 
 st.markdown("""
-
 <style>
 
-.stApp{
-
-    background-color:#050816;
-    color:white;
+html, body, [class*="css"] {
+    background-color: #020617;
+    color: white;
 }
 
-[data-testid="stSidebar"]{
-
-    background-color:#0B1026;
+h1,h2,h3,h4 {
+    color: white;
 }
 
-h1,h2,h3,h4{
-
-    color:#C8B6FF;
+.sidebar .sidebar-content {
+    background-color: #0f172a;
 }
 
-div.stButton > button{
-
-    background:#7B61FF;
-    color:white;
-    border-radius:12px;
-    border:none;
-    padding:0.6rem 1rem;
-    font-weight:bold;
-}
-
-div.stMetric{
-
-    background-color:#11162A;
-    padding:10px;
-    border-radius:10px;
-}
-
-input, textarea{
-
-    border-radius:10px !important;
+.stButton>button {
+    background-color: #7c3aed;
+    color: white;
+    border-radius: 12px;
+    border: none;
+    padding: 10px;
 }
 
 </style>
-
 """, unsafe_allow_html=True)
 
-# ==================================================
-# CREAR CARPETA
-# ==================================================
-
-os.makedirs("signals", exist_ok=True)
-
-# ==================================================
-# SESSION STATE
-# ==================================================
-
-if "logged" not in st.session_state:
-
-    st.session_state["logged"] = False
-
-if "user" not in st.session_state:
-
-    st.session_state["user"] = ""
-
-# ==================================================
-# LOGIN SCREEN
-# ==================================================
-
-if st.session_state["logged"] == False:
-
-    st.title("🌌 SIGNAL MAP AI")
-
-    st.subheader(
-        "Cloud Signal Network"
-    )
-
-    st.markdown("---")
-
-    login_tab, register_tab, recovery_tab = st.tabs(
-
-        [
-
-            "🔐 Login",
-
-            "🛰️ Register",
-
-            "🔑 Recover Password"
-        ]
-    )
-
-    # ==================================================
-    # LOGIN
-    # ==================================================
-
-    with login_tab:
-
-        login_email = st.text_input(
-            "Correo",
-            key="login_email"
-        )
-
-        login_password = st.text_input(
-            "Contraseña",
-            type="password",
-            key="login_password"
-        )
-
-        login_button = st.button(
-            "Ingresar"
-        )
-
-        if login_button:
-
-            if login_email != "":
-
-                st.session_state["logged"] = True
-
-                st.session_state["user"] = login_email
-
-                st.success(
-                    "Access Granted"
-                )
-
-                st.rerun()
-
-    # ==================================================
-    # REGISTER
-    # ==================================================
-
-    with register_tab:
-
-        register_email = st.text_input(
-            "Nuevo correo",
-            key="register_email"
-        )
-
-        register_password = st.text_input(
-            "Nueva contraseña",
-            type="password",
-            key="register_password"
-        )
-
-        register_button = st.button(
-            "Crear Cuenta"
-        )
-
-        if register_button:
-
-            if register_email != "":
-
-                db.collection(
-                    "users"
-                ).add({
-
-                    "email":
-                    register_email,
-
-                    "created":
-                    str(datetime.now())
-                })
-
-                st.success(
-                    "Cuenta creada correctamente."
-                )
-
-    # ==================================================
-    # RECOVER PASSWORD
-    # ==================================================
-
-    with recovery_tab:
-
-        recovery_email = st.text_input(
-            "Correo de recuperación"
-        )
-
-        recovery_button = st.button(
-            "Recuperar"
-        )
-
-        if recovery_button:
-
-            st.success(
-                f"Recovery link enviado a {recovery_email}"
-            )
-
-    st.stop()
-
-# ==================================================
-# ROLE SYSTEM
-# ==================================================
-
-MASTER_USERS = [
-
-    "TU_CORREO@gmail.com",
-
-    "admin@gmail.com"
-]
-
-if st.session_state["user"] in MASTER_USERS:
-
-    role = "MASTER NODE"
-
-else:
-
-    role = "USER"
-
-# ==================================================
+# =========================
 # SIDEBAR
-# ==================================================
+# =========================
 
-st.sidebar.success(
+st.sidebar.title("🧭 SignalMap IA")
 
-    f"👤 {st.session_state['user']}"
-)
-
-st.sidebar.info(
-
-    f"🛰️ {role}"
-)
-
-logout = st.sidebar.button(
-    "Cerrar Sesión"
-)
-
-if logout:
-
-    st.session_state["logged"] = False
-
-    st.rerun()
-
-st.sidebar.markdown("""
-
-# 🌌 SIGNAL MAP AI
-
-### Cartografía de Señales
-Sistema Experimental de Patrones
-
----
-
-""")
-
-page = st.sidebar.radio(
-
-    "🧭 Navegación",
-
+menu = st.sidebar.radio(
+    "Navegación",
     [
-
-        "⚡ Registro Rápido",
-
-        "🌌 Constelación del Día",
-
-        "🖼️ Cargar Imagen",
-
-        "📖 Diario de Señales",
-
-        "📈 Timeline",
-
-        "🧠 Insights IA",
-
+        "🏠 Dashboard",
+        "🧠 AI Interpretation",
+        "🪐 Constellation Map",
+        "📈 Pattern Evolution",
         "🎲 Predicción Numérica",
-
-        "🧩 Constellation Map",
-
-        "⚡ Tesla Nodes",
-
         "🗺️ Cartography Layer",
-
-        "🔮 AI Interpretation",
-
-        "📡 Pattern Evolution",
-
+        "📖 Diario de Señales",
+        "📊 Timeline",
+        "⚡ Tesla Nodes",
         "🛰️ Master Console"
     ]
 )
 
-st.sidebar.markdown("---")
+# =========================
+# GENERADOR BASE
+# =========================
 
-st.sidebar.markdown("""
+def generar_datos():
 
-### 🛰️ Estado del Sistema
+    numeros = np.random.randint(0, 10, 80)
 
-🟢 Núcleo IA activo  
-🟢 Cartografía cargada  
-🟢 Registro sincronizado  
-🟣 Nodo Tesla disponible  
-🔵 Constelaciones dinámicas  
-
-""")
-
-# ==================================================
-# CLASIFICADOR IA
-# ==================================================
-
-def classify_signal(signal):
-
-    clean_signal = signal.replace(":", "")
-
-    if ":" in signal:
-
-        parts = signal.split(":")
-
-        if len(parts) == 2:
-
-            if parts[0] == parts[1]:
-
-                return "Hora Espejo"
-
-            elif parts[0] == parts[1][::-1]:
-
-                return "Hora Reflejo"
-
-    if len(set(clean_signal)) == 1:
-
-        return "Número Repetitivo"
-
-    ascending = ''.join(
-        sorted(clean_signal)
+    timestamps = pd.date_range(
+        start=datetime.now(),
+        periods=80,
+        freq="min"
     )
 
-    if clean_signal == ascending:
+    df = pd.DataFrame({
+        "numero": numeros,
+        "timestamp": timestamps
+    })
 
-        return "Secuencia Ascendente"
+    return df
 
-    descending = ''.join(
-        sorted(clean_signal, reverse=True)
+df = generar_datos()
+
+# =========================
+# DASHBOARD
+# =========================
+
+if menu == "🏠 Dashboard":
+
+    st.title("🧠 SignalMap IA")
+
+    st.markdown("""
+    ### Plataforma de análisis dinámico de patrones y señales.
+    """)
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric("Patrones", random.randint(10, 30))
+    col2.metric("Clusters", random.randint(2, 9))
+    col3.metric("Persistencia", f"{random.randint(60,95)}%")
+
+    st.divider()
+
+    freq = df["numero"].value_counts().sort_index()
+
+    fig = px.bar(
+        x=freq.index,
+        y=freq.values,
+        color=freq.values,
+        labels={"x":"Número", "y":"Frecuencia"},
+        title="Frecuencia de Señales"
     )
 
-    if clean_signal == descending:
+    st.plotly_chart(fig, use_container_width=True)
 
-        return "Secuencia Descendente"
+# =========================
+# AI INTERPRETATION
+# =========================
 
-    return "Patrón General"
+elif menu == "🧠 AI Interpretation":
 
-# ==================================================
-# REGISTRO COMPLETO DE SEÑAL
-# ==================================================
+    st.title("🧠 AI Interpretation")
 
-if page == "⚡ Registro Rápido":
+    frecuencia = df["numero"].value_counts()
 
-    st.title("🌌 Registro Completo de Señal")
+    dominante = frecuencia.idxmax()
 
-    signal_input = st.text_input(
+    persistencia = frecuencia.max()
 
-        "⚡ Señal Detectada",
-
-        placeholder="Ejemplo: 11:11"
+    sincronias = len(
+        frecuencia[frecuencia > 5]
     )
 
-    environment = st.selectbox(
+    st.markdown("## 🔍 Análisis IA")
 
-        "🌎 Tipo de Entorno",
+    insights = []
 
-        [
-
-            "📱 Digital",
-
-            "🌆 Exterior",
-
-            "👥 Social",
-
-            "🌙 Personal",
-
-            "🏫 Escuela",
-
-            "🚗 Transporte",
-
-            "🏠 Casa",
-
-            "🧠 Mental",
-
-            "🔮 Otro"
-        ]
-    )
-
-    origin = st.selectbox(
-
-        "📡 Origen de la Señal",
-
-        [
-
-            "Celular",
-
-            "Redes Sociales",
-
-            "Computadora",
-
-            "Televisión",
-
-            "Videojuego",
-
-            "Chat IA",
-
-            "Mensaje",
-
-            "Notificación",
-
-            "Anuncio",
-
-            "Placa de Auto",
-
-            "Reloj",
-
-            "TikTok",
-
-            "YouTube",
-
-            "Spotify",
-
-            "Persona",
-
-            "Conversación",
-
-            "Sueño",
-
-            "Pensamiento",
-
-            "Escuela",
-
-            "Calle",
-
-            "Otro"
-        ]
-    )
-
-    intensity = st.slider(
-
-        "⚡ Intensidad Percibida",
-
-        1,
-
-        10,
-
-        5
-    )
-
-    emotional_state = st.selectbox(
-
-        "🧠 Estado Emocional",
-
-        [
-
-            "Tranquilo",
-
-            "Ansioso",
-
-            "Motivado",
-
-            "Inspirado",
-
-            "Cansado",
-
-            "Emocionado",
-
-            "Confundido",
-
-            "Curioso",
-
-            "Neutral"
-        ]
-    )
-
-    location = st.selectbox(
-
-        "📍 Ubicación",
-
-        [
-
-            "Casa",
-
-            "Escuela",
-
-            "Trabajo",
-
-            "Calle",
-
-            "Transporte",
-
-            "Internet",
-
-            "Habitación",
-
-            "Otro"
-        ]
-    )
-
-    repeated_signal = st.selectbox(
-
-        "🔁 ¿La viste varias veces?",
-
-        [
-
-            "Sí",
-
-            "No"
-        ]
-    )
-
-    witnesses = st.selectbox(
-
-        "👁️ ¿Alguien más la vio?",
-
-        [
-
-            "Sí",
-
-            "No",
-
-            "No estoy seguro"
-        ]
-    )
-
-    weather_context = st.selectbox(
-
-        "🌦️ Contexto Ambiental",
-
-        [
-
-            "Día",
-
-            "Noche",
-
-            "Lluvia",
-
-            "Silencio",
-
-            "Música",
-
-            "Tráfico",
-
-            "Calma",
-
-            "Ruido",
-
-            "Otro"
-        ]
-    )
-
-    personal_note = st.text_area(
-
-        "📝 Nota Personal",
-
-        placeholder="¿Qué ocurrió o qué sentiste?"
-    )
-
-    if st.button("💾 Guardar Señal"):
-
-        if signal_input != "":
-
-            signal_type = classify_signal(
-                signal_input
-            )
-
-            signal_data = {
-
-                "user":
-                st.session_state["user"],
-
-                "signal":
-                signal_input,
-
-                "type":
-                signal_type,
-
-                "environment":
-                environment,
-
-                "origin":
-                origin,
-
-                "intensity":
-                intensity,
-
-                "emotion":
-                emotional_state,
-
-                "location":
-                location,
-
-                "repeated":
-                repeated_signal,
-
-                "witnesses":
-                witnesses,
-
-                "weather":
-                weather_context,
-
-                "note":
-                personal_note,
-
-                "timestamp":
-                str(datetime.now())
-            }
-
-            db.collection(
-                "signals"
-            ).add(signal_data)
-
-            st.success(
-                "🌌 Señal registrada correctamente."
-            )
-
-# ==================================================
-# CONSTELACIÓN DEL DÍA
-# ==================================================
-
-if page == "🌌 Constelación del Día":
-
-    st.title("🌌 Constelación del Día")
-
-    docs = db.collection(
-        "signals"
-    ).where(
-        "user",
-        "==",
-        st.session_state["user"]
-    ).stream()
-
-    signals = []
-
-    for doc in docs:
-
-        data = doc.to_dict()
-
-        signals.append(
-            data["signal"]
+    if persistencia > 10:
+        insights.append(
+            f"⚡ Alta persistencia detectada en nodo {dominante}"
         )
 
-    if len(signals) > 0:
-
-        fig = go.Figure()
-
-        angles = np.linspace(
-            0,
-            2*np.pi,
-            len(signals),
-            endpoint=False
+    if sincronias >= 4:
+        insights.append(
+            "🪐 Sincronías múltiples detectadas"
         )
 
-        radius = np.random.randint(
-            1,
-            10,
-            len(signals)
+    if dominante % 2 == 0:
+        insights.append(
+            "📡 Predominio estructural par"
         )
 
-        x = radius * np.cos(angles)
-
-        y = radius * np.sin(angles)
-
-        fig.add_trace(
-
-            go.Scatter(
-
-                x=x,
-
-                y=y,
-
-                mode="markers+text",
-
-                text=signals,
-
-                marker=dict(
-
-                    size=20,
-
-                    color=radius,
-
-                    colorscale="Purples"
-                )
-            )
+    if dominante > 5:
+        insights.append(
+            "🔥 Tendencia ascendente observada"
         )
 
-        fig.update_layout(
+    for i in insights:
+        st.success(i)
 
-            template="plotly_dark",
+    st.divider()
 
-            height=700
+    st.write("### Núcleo IA activo")
+
+# =========================
+# CONSTELLATION MAP
+# =========================
+
+elif menu == "🪐 Constellation Map":
+
+    st.title("🪐 Constellation Map")
+
+    x = np.random.randn(40)
+    y = np.random.randn(40)
+
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=y,
+            mode='markers+lines',
+            marker=dict(
+                size=14,
+                color=np.random.randint(0,10,40),
+                colorscale='Plasma'
+            ),
+            line=dict(
+                width=1
+            ),
+            text=[f"Nodo {i}" for i in range(40)]
         )
-
-        st.plotly_chart(
-            fig,
-            use_container_width=True
-        )
-
-# ==================================================
-# CARGAR IMAGEN
-# ==================================================
-
-if page == "🖼️ Cargar Imagen":
-
-    st.title("🖼️ Cargar Imagen")
-
-    uploaded_file = st.file_uploader(
-
-        "Selecciona una imagen",
-
-        type=["png", "jpg", "jpeg"]
     )
 
-    if uploaded_file is not None:
+    fig.update_layout(
+        template="plotly_dark",
+        height=700
+    )
 
-        image = Image.open(uploaded_file)
+    st.plotly_chart(fig, use_container_width=True)
 
-        st.image(
-            image,
-            use_container_width=True
+# =========================
+# PATTERN EVOLUTION
+# =========================
+
+elif menu == "📈 Pattern Evolution":
+
+    st.title("📈 Evolución de Patrones")
+
+    evolucion = np.cumsum(
+        np.random.randn(100)
+    )
+
+    fig = px.line(
+        x=np.arange(100),
+        y=evolucion,
+        labels={
+            "x":"Tiempo",
+            "y":"Evolución"
+        }
+    )
+
+    fig.update_layout(
+        template="plotly_dark"
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+# =========================
+# PREDICCION
+# =========================
+
+elif menu == "🎲 Predicción Numérica":
+
+    st.title("🎲 Predicción Numérica")
+
+    freq = df["numero"].value_counts()
+
+    top = freq.sort_values(
+        ascending=False
+    ).head(3)
+
+    st.markdown("## 🔮 Tendencias dominantes")
+
+    for idx, val in top.items():
+
+        porcentaje = round(
+            (val / len(df))*100,
+            2
         )
 
-        reader = easyocr.Reader(['en'])
-
-        results = reader.readtext(
-            np.array(image)
+        st.info(
+            f"Nodo {idx} → {porcentaje}% de persistencia"
         )
 
-        detected_text = ""
+    pred = random.choice(top.index.tolist())
 
-        for result in results:
+    st.success(
+        f"⚡ Nodo con mayor potencial estructural: {pred}"
+    )
 
-            detected_text += result[1] + " "
+# =========================
+# CARTOGRAPHY
+# =========================
 
-        st.subheader(
-            "Texto Detectado"
-        )
+elif menu == "🗺️ Cartography Layer":
 
-        st.write(detected_text)
+    st.title("🗺️ Cartography Layer")
 
-# ==================================================
-# DIARIO DE SEÑALES
-# ==================================================
+    mapa = pd.DataFrame({
+        "x": np.random.randn(120),
+        "y": np.random.randn(120),
+        "intensidad": np.random.randint(1,100,120)
+    })
 
-if page == "📖 Diario de Señales":
+    fig = px.density_heatmap(
+        mapa,
+        x="x",
+        y="y",
+        z="intensidad",
+        nbinsx=20,
+        nbinsy=20
+    )
+
+    fig.update_layout(
+        template="plotly_dark",
+        height=700
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
+# =========================
+# DIARIO
+# =========================
+
+elif menu == "📖 Diario de Señales":
 
     st.title("📖 Diario de Señales")
 
-    docs = db.collection(
-        "signals"
-    ).where(
-        "user",
-        "==",
-        st.session_state["user"]
-    ).stream()
+    nota = st.text_area(
+        "Registrar señal"
+    )
 
-    data_list = []
+    if st.button("Guardar señal"):
 
-    for doc in docs:
-
-        data_list.append(
-            doc.to_dict()
+        st.success(
+            "Señal registrada correctamente"
         )
 
-    if len(data_list) > 0:
+        st.write({
+            "timestamp": str(datetime.now()),
+            "nota": nota
+        })
 
-        df = pd.DataFrame(
-            data_list
-        )
-
-        st.dataframe(
-            df,
-            use_container_width=True
-        )
-
-# ==================================================
+# =========================
 # TIMELINE
-# ==================================================
+# =========================
 
-if page == "📈 Timeline":
+elif menu == "📊 Timeline":
 
-    st.title("📈 Timeline")
+    st.title("📊 Timeline")
 
-    docs = db.collection(
-        "signals"
-    ).where(
-        "user",
-        "==",
-        st.session_state["user"]
-    ).stream()
+    timeline = pd.DataFrame({
+        "timestamp": pd.date_range(
+            start=datetime.now(),
+            periods=20,
+            freq="h"
+        ),
+        "evento": [
+            f"Evento {i}"
+            for i in range(20)
+        ]
+    })
 
-    timeline = []
+    st.dataframe(
+        timeline,
+        use_container_width=True
+    )
 
-    for doc in docs:
-
-        timeline.append(
-            doc.to_dict()
-        )
-
-    if len(timeline) > 0:
-
-        df = pd.DataFrame(
-            timeline
-        )
-
-        st.dataframe(
-            df,
-            use_container_width=True
-        )
-
-# ==================================================
-# INSIGHTS IA
-# ==================================================
-
-if page == "🧠 Insights IA":
-
-    st.title("🧠 Insights IA")
-
-    st.info("""
-
-La IA analiza:
-
-• persistencia  
-• sincronías  
-• repetición estructural  
-• patrones dominantes  
-
-""")
-
-# ==================================================
+# =========================
 # TESLA NODES
-# ==================================================
+# =========================
 
-if page == "⚡ Tesla Nodes":
+elif menu == "⚡ Tesla Nodes":
 
     st.title("⚡ Tesla Nodes")
 
-    docs = db.collection(
-        "signals"
-    ).stream()
+    energia = np.random.randint(
+        0,
+        100,
+        20
+    )
 
-    frequency_map = {}
+    fig = px.scatter(
+        x=np.arange(20),
+        y=energia,
+        size=energia,
+        color=energia,
+        title="Tesla Node Activity"
+    )
 
-    for doc in docs:
+    fig.update_layout(
+        template="plotly_dark"
+    )
 
-        data = doc.to_dict()
+    st.plotly_chart(fig, use_container_width=True)
 
-        nums = re.findall(
-            r'\d',
-            data["signal"]
-        )
-
-        for n in nums:
-
-            n = int(n)
-
-            if n in frequency_map:
-
-                frequency_map[n] += 1
-
-            else:
-
-                frequency_map[n] = 1
-
-    if len(frequency_map) > 0:
-
-        df = pd.DataFrame({
-
-            "Número":
-            list(frequency_map.keys()),
-
-            "Frecuencia":
-            list(frequency_map.values())
-        })
-
-        fig = px.bar(
-
-            df,
-
-            x="Número",
-
-            y="Frecuencia",
-
-            color="Frecuencia",
-
-            template="plotly_dark"
-        )
-
-        st.plotly_chart(
-            fig,
-            use_container_width=True
-        )
-
-# ==================================================
+# =========================
 # MASTER CONSOLE
-# ==================================================
+# =========================
 
-if page == "🛰️ Master Console":
+elif menu == "🛰️ Master Console":
 
-    if role != "MASTER NODE":
+    st.title("🛰️ Master Console")
 
-        st.error(
-            "Access Denied"
-        )
+    st.markdown("""
+    ## Estado del Sistema
+    """)
 
-    else:
+    estados = {
+        "Núcleo IA": "Activo",
+        "Cartografía": "Sincronizada",
+        "Clusters": "Detectados",
+        "Timeline": "Operativo",
+        "Predicción": "Estable"
+    }
 
-        st.title(
-            "🛰️ MASTER CONSOLE"
-        )
+    for k,v in estados.items():
+        st.success(f"{k}: {v}")
 
-        docs = db.collection(
-            "signals"
-        ).stream()
+    st.divider()
 
-        all_data = []
-
-        for doc in docs:
-
-            all_data.append(
-                doc.to_dict()
-            )
-
-        if len(all_data) > 0:
-
-            df = pd.DataFrame(
-                all_data
-            )
-
-            st.dataframe(
-                df,
-                use_container_width=True
-            )
-
-            st.metric(
-                "Global Signals",
-                len(df)
-            )
+    st.code("""
+>>> SIGNALMAP IA CORE ACTIVE
+>>> SCANNING STRUCTURES
+>>> ANALYZING PATTERNS
+>>> GENERATING CONSTELLATIONS
+>>> TESLA NODE ONLINE
+    """)
