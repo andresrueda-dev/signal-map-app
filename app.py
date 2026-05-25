@@ -5,11 +5,15 @@ import pandas as pd
 import json
 import os
 import glob
+import re
+import easyocr
+import cv2
 
+from PIL import Image
 from datetime import datetime
 
 # ==================================================
-# PAGE CONFIG
+# CONFIGURACIÓN GENERAL
 # ==================================================
 
 st.set_page_config(
@@ -18,7 +22,7 @@ st.set_page_config(
 )
 
 # ==================================================
-# PREMIUM STYLE
+# ESTILO PREMIUM
 # ==================================================
 
 st.markdown("""
@@ -62,17 +66,18 @@ div.stMetric{
 st.sidebar.title("SIGNAL MAP AI")
 
 page = st.sidebar.radio(
-    "Navigation",
+    "Navegación",
     [
-        "Live Signal",
-        "Signal Journal",
+        "Señal en Vivo",
+        "Agregar Registro",
+        "Diario de Señales",
         "Timeline",
         "Insights"
     ]
 )
 
 # ==================================================
-# SAVE SIGNAL
+# GUARDAR SEÑAL
 # ==================================================
 
 def save_signal(signal_data):
@@ -85,7 +90,7 @@ def save_signal(signal_data):
         json.dump(signal_data, f, indent=4)
 
 # ==================================================
-# LOAD SIGNAL
+# CARGAR SEÑAL
 # ==================================================
 
 def load_signal(date):
@@ -100,7 +105,7 @@ def load_signal(date):
     return None
 
 # ==================================================
-# PATTERN ANALYSIS ENGINE
+# MOTOR DE ANÁLISIS
 # ==================================================
 
 def analyze_pattern(nodes):
@@ -121,36 +126,34 @@ def analyze_pattern(nodes):
 
     if symmetry_score > 0.75:
         reading.append(
-            "High symmetry detected indicating alignment."
+            "Alta alineación energética detectada."
         )
 
     if vertical_alignment:
         reading.append(
-            "Strong central axis formation detected."
+            "Se detectó una fuerte estructura de eje central."
         )
 
     if lower_density:
         reading.append(
-            "Lower-node concentration suggests grounding and manifestation."
+            "La concentración inferior sugiere manifestación y estabilidad."
         )
 
     if len(reading) == 0:
         reading.append(
-            "Distributed exploratory structure detected."
+            "La estructura muestra exploración y expansión."
         )
 
     return {
-        "pattern_type": "Humanoid Structure",
-        "energy_type": "Convergent",
+        "pattern_type": "Estructura Humanoide",
+        "energy_type": "Convergente",
         "symmetry_score": symmetry_score,
         "reading": " ".join(reading)
     }
 
 # ==================================================
-# GENERATE SIGNAL NODES
+# NODOS BASE
 # ==================================================
-
-np.random.seed(7)
 
 nodes = [
 
@@ -175,18 +178,18 @@ nodes = [
 ]
 
 # ==================================================
-# LIVE SIGNAL
+# SEÑAL EN VIVO
 # ==================================================
 
-if page == "Live Signal":
+if page == "Señal en Vivo":
 
     st.title("SIGNAL MAP AI")
 
     st.markdown("""
-    ### Interactive Pattern Intelligence System
+### Sistema Inteligente de Patrones
 
-    Track • Analyze • Interpret • Archive
-    """)
+Analiza • Interpreta • Guarda • Visualiza
+""")
 
     analysis = analyze_pattern(nodes)
 
@@ -194,8 +197,6 @@ if page == "Live Signal":
     y = [n[1] for n in nodes]
 
     fig = go.Figure()
-
-    # CONNECTION LINES
 
     for i in range(len(nodes)-1):
 
@@ -212,8 +213,6 @@ if page == "Live Signal":
                 showlegend=False
             )
         )
-
-    # NODES
 
     fig.add_trace(
         go.Scatter(
@@ -238,7 +237,7 @@ if page == "Live Signal":
             textposition="top center",
 
             hovertemplate=
-            "<b>Node %{text}</b><extra></extra>"
+            "<b>Nodo %{text}</b><extra></extra>"
         )
     )
 
@@ -267,48 +266,42 @@ if page == "Live Signal":
         use_container_width=True
     )
 
-    # METRICS
-
     col1, col2, col3 = st.columns(3)
 
     with col1:
 
         st.metric(
-            "Symmetry",
+            "Simetría",
             f"{analysis['symmetry_score'] * 100:.0f}%"
         )
 
     with col2:
 
         st.metric(
-            "Pattern",
+            "Patrón",
             analysis["pattern_type"]
         )
 
     with col3:
 
         st.metric(
-            "Energy",
+            "Energía",
             analysis["energy_type"]
         )
 
-    # AI READING
-
-    st.subheader("Pattern Reading AI")
+    st.subheader("Lectura de Patrón")
 
     st.info(
         analysis["reading"]
     )
 
-    # SAVE BUTTON
-
-    if st.button("Save Current Signal"):
+    if st.button("Guardar Señal"):
 
         signal_entry = {
 
             "date": str(datetime.now().date()),
 
-            "title": "Central Alignment Formation",
+            "title": "Formación Central",
 
             "pattern_type": analysis["pattern_type"],
 
@@ -326,19 +319,332 @@ if page == "Live Signal":
         save_signal(signal_entry)
 
         st.success(
-            "Signal saved successfully."
+            "Señal guardada correctamente."
         )
 
 # ==================================================
-# SIGNAL JOURNAL
+# AGREGAR REGISTRO
 # ==================================================
 
-if page == "Signal Journal":
+if page == "Agregar Registro":
 
-    st.title("Signal Journal")
+    st.title("Agregar Registro")
+
+    input_mode = st.radio(
+
+        "Selecciona el tipo de entrada",
+
+        [
+            "Bloques Numéricos",
+            "Detección con Cámara",
+            "Imagen desde Galería"
+        ]
+    )
+
+    # ==================================================
+    # BLOQUES NUMÉRICOS
+    # ==================================================
+
+    if input_mode == "Bloques Numéricos":
+
+        st.subheader("Registro de Señales del Día")
+
+        signal_blocks = st.text_area(
+
+            "Ingresa señales separadas por espacios o líneas",
+
+            height=250,
+
+            placeholder="""
+111
+222
+777
+11:11
+444
+888
+333
+"""
+        )
+
+        if st.button("Analizar Señales"):
+
+            cleaned_text = signal_blocks.replace("\n", " ")
+
+            signals = cleaned_text.split()
+
+            detected_numbers = []
+
+            for signal in signals:
+
+                nums = re.findall(r'\d+', signal)
+
+                for n in nums:
+                    detected_numbers.append(n)
+
+            frequency_map = {}
+
+            for num in detected_numbers:
+
+                if num in frequency_map:
+                    frequency_map[num] += 1
+                else:
+                    frequency_map[num] = 1
+
+            dominant_number = max(
+                frequency_map,
+                key=frequency_map.get
+            )
+
+            dominant_count = frequency_map[
+                dominant_number
+            ]
+
+            digit_energy = 0
+
+            for number in detected_numbers:
+
+                digit_energy += sum(
+                    map(int, number)
+                )
+
+            st.subheader("Resultados")
+
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+
+                st.metric(
+                    "Señales Detectadas",
+                    len(detected_numbers)
+                )
+
+            with col2:
+
+                st.metric(
+                    "Número Dominante",
+                    dominant_number
+                )
+
+            with col3:
+
+                st.metric(
+                    "Frecuencia Total",
+                    digit_energy
+                )
+
+            st.subheader("Frecuencias")
+
+            freq_data = pd.DataFrame({
+
+                "Número":
+                list(frequency_map.keys()),
+
+                "Repeticiones":
+                list(frequency_map.values())
+
+            })
+
+            st.dataframe(
+                freq_data,
+                use_container_width=True
+            )
+
+            fig = go.Figure()
+
+            fig.add_trace(
+
+                go.Bar(
+
+                    x=list(frequency_map.keys()),
+
+                    y=list(frequency_map.values())
+                )
+            )
+
+            fig.update_layout(
+
+                title="Mapa de Frecuencias",
+
+                paper_bgcolor="#050816",
+
+                plot_bgcolor="#050816",
+
+                font=dict(
+                    color="white"
+                )
+            )
+
+            st.plotly_chart(
+                fig,
+                use_container_width=True
+            )
+
+            reading = f"""
+La secuencia dominante del día fue {dominant_number},
+repitiéndose {dominant_count} veces.
+
+La frecuencia acumulativa total alcanzó
+un valor de {digit_energy}.
+
+El sistema detecta concentración energética
+sobre patrones repetitivos y sincronías
+numéricas persistentes.
+"""
+
+            st.subheader("Lectura Automática")
+
+            st.info(reading)
+
+            if st.button("Guardar Registro Diario"):
+
+                signal_entry = {
+
+                    "date": str(datetime.now().date()),
+
+                    "title": "Registro Numérico Diario",
+
+                    "pattern_type": "Frecuencia Numérica",
+
+                    "energy_type": "Sincronía",
+
+                    "symmetry_score": 0.90,
+
+                    "intensity": digit_energy,
+
+                    "dominant_number":
+                    dominant_number,
+
+                    "signals":
+                    detected_numbers,
+
+                    "reading":
+                    reading,
+
+                    "created_at":
+                    str(datetime.now())
+                }
+
+                save_signal(signal_entry)
+
+                st.success(
+                    "Registro guardado correctamente."
+                )
+
+    # ==================================================
+    # CÁMARA
+    # ==================================================
+
+    elif input_mode == "Detección con Cámara":
+
+        st.subheader("Escaneo en Tiempo Real")
+
+        camera_image = st.camera_input(
+            "Captura una señal"
+        )
+
+        if camera_image is not None:
+
+            image = Image.open(camera_image)
+
+            st.image(
+                image,
+                caption="Imagen Capturada",
+                use_container_width=True
+            )
+
+            reader = easyocr.Reader(['en'])
+
+            results = reader.readtext(
+                np.array(image)
+            )
+
+            detected_text = ""
+
+            for result in results:
+
+                detected_text += result[1] + " "
+
+            st.subheader("Contenido Detectado")
+
+            st.write(detected_text)
+
+            numbers = re.findall(
+                r'\d+',
+                detected_text
+            )
+
+            digit_sum = sum(
+                [sum(map(int, num)) for num in numbers]
+            )
+
+            st.metric(
+                "Frecuencia Energética",
+                digit_sum
+            )
+
+    # ==================================================
+    # GALERÍA
+    # ==================================================
+
+    elif input_mode == "Imagen desde Galería":
+
+        uploaded_file = st.file_uploader(
+
+            "Sube una imagen",
+
+            type=["png", "jpg", "jpeg"]
+        )
+
+        if uploaded_file is not None:
+
+            image = Image.open(uploaded_file)
+
+            st.image(
+                image,
+                caption="Imagen Analizada",
+                use_container_width=True
+            )
+
+            reader = easyocr.Reader(['en'])
+
+            results = reader.readtext(
+                np.array(image)
+            )
+
+            detected_text = ""
+
+            for result in results:
+
+                detected_text += result[1] + " "
+
+            st.subheader("Texto Detectado")
+
+            st.write(detected_text)
+
+            numbers = re.findall(
+                r'\d+',
+                detected_text
+            )
+
+            digit_sum = sum(
+                [sum(map(int, num)) for num in numbers]
+            )
+
+            st.metric(
+                "Frecuencia Detectada",
+                digit_sum
+            )
+
+# ==================================================
+# DIARIO DE SEÑALES
+# ==================================================
+
+if page == "Diario de Señales":
+
+    st.title("Diario de Señales")
 
     selected_date = st.date_input(
-        "Select Signal Date"
+        "Selecciona una fecha"
     )
 
     signal = load_signal(
@@ -356,23 +662,23 @@ if page == "Signal Journal":
         with col1:
 
             st.metric(
-                "Symmetry",
+                "Simetría",
                 f"{signal['symmetry_score'] * 100:.0f}%"
             )
 
         with col2:
 
             st.metric(
-                "Intensity",
+                "Intensidad",
                 signal["intensity"]
             )
 
         st.markdown(
-            f"### Pattern Type: {signal['pattern_type']}"
+            f"### Tipo de Patrón: {signal['pattern_type']}"
         )
 
         st.markdown(
-            f"### Energy Type: {signal['energy_type']}"
+            f"### Tipo de Energía: {signal['energy_type']}"
         )
 
         st.info(
@@ -382,7 +688,7 @@ if page == "Signal Journal":
     else:
 
         st.warning(
-            "No saved signal for this date."
+            "No existe una señal guardada para esta fecha."
         )
 
 # ==================================================
@@ -391,7 +697,7 @@ if page == "Signal Journal":
 
 if page == "Timeline":
 
-    st.title("Signal Timeline")
+    st.title("Timeline de Señales")
 
     files = sorted(
         glob.glob("signals/*.json")
@@ -400,7 +706,7 @@ if page == "Timeline":
     if len(files) == 0:
 
         st.warning(
-            "No saved signals yet."
+            "Aún no hay señales guardadas."
         )
 
     for file in files:
@@ -410,20 +716,17 @@ if page == "Timeline":
             signal = json.load(f)
 
             st.markdown(f"""
-            ---
-            ## {signal['date']}
+---
+## {signal['date']}
 
-            ### {signal['pattern_type']}
+### {signal['pattern_type']}
 
-            **Energy Type**
-            {signal['energy_type']}
+**Energía**
+{signal['energy_type']}
 
-            **Symmetry**
-            {signal['symmetry_score'] * 100:.0f}%
-
-            **Reading**
-            {signal['reading']}
-            """)
+**Lectura**
+{signal['reading']}
+""")
 
 # ==================================================
 # INSIGHTS
@@ -440,7 +743,7 @@ if page == "Insights":
     if len(files) == 0:
 
         st.warning(
-            "Not enough saved signals yet."
+            "No hay suficientes señales guardadas."
         )
 
     else:
@@ -462,16 +765,16 @@ if page == "Insights":
         )
 
         st.metric(
-            "Average Symmetry",
+            "Promedio de Simetría",
             f"{avg_symmetry * 100:.0f}%"
         )
 
         st.markdown("""
-        ### AI Insight
+### Lectura General
 
-        Recent formations reveal increasing structural consistency
-        and progressive convergence patterns across saved signals.
+Las señales recientes muestran incremento
+en patrones repetitivos y sincronías.
 
-        The system detects stabilization tendencies
-        and stronger central-axis manifestations.
-        """)
+El sistema detecta consolidación
+de estructuras numéricas dominantes.
+""")
