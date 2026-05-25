@@ -84,21 +84,29 @@ os.makedirs("signals", exist_ok=True)
 # MENÚ PRINCIPAL
 # ==================================================
 
-[
-    "Registro Rápido",
+st.sidebar.title("SIGNAL MAP AI")
 
-    "Constelación del Día",
+page = st.sidebar.radio(
 
-    "Cargar Imagen",
+    "Menú Principal",
 
-    "Diario de Señales",
+    [
 
-    "Timeline",
+        "Registro Rápido",
 
-    "Insights IA",
+        "Constelación del Día",
 
-    "Predicción Numérica",
-]
+        "Cargar Imagen",
+
+        "Diario de Señales",
+
+        "Timeline",
+
+        "Insights IA",
+
+        "Predicción Numérica"
+    ]
+)
 
 # ==================================================
 # CLASIFICADOR IA
