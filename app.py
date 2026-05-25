@@ -387,18 +387,278 @@ def classify_signal(signal):
 # REGISTRO RÁPIDO
 # ==================================================
 
+# ==================================================
+# REGISTRO COMPLETO DE SEÑAL
+# ==================================================
+
 if page == "⚡ Registro Rápido":
 
-    st.title("Registro Rápido de Señales")
+    st.title("🌌 Registro Completo de Señal")
+
+    st.markdown("""
+
+Sistema contextual de captura.
+
+Puedes registrar:
+
+• señales rápidas  
+• sincronías  
+• contexto emocional  
+• entorno de aparición  
+• resonancia  
+• dispositivos  
+• observaciones  
+
+""")
+
+    # ==================================================
+    # SEÑAL PRINCIPAL
+    # ==================================================
 
     signal_input = st.text_input(
 
-        "Escribe una señal",
+        "⚡ Señal Detectada",
 
         placeholder="Ejemplo: 11:11"
     )
 
-    if st.button("Guardar Señal"):
+    # ==================================================
+    # ENTORNO
+    # ==================================================
+
+    environment = st.selectbox(
+
+        "🌎 Tipo de Entorno",
+
+        [
+
+            "📱 Digital",
+
+            "🌆 Exterior",
+
+            "👥 Social",
+
+            "🌙 Personal",
+
+            "🏫 Escuela",
+
+            "🚗 Transporte",
+
+            "🏠 Casa",
+
+            "🧠 Mental",
+
+            "🔮 Otro"
+        ]
+    )
+
+    # ==================================================
+    # ORIGEN
+    # ==================================================
+
+    origin = st.selectbox(
+
+        "📡 Origen de la Señal",
+
+        [
+
+            "Celular",
+
+            "Redes Sociales",
+
+            "Computadora",
+
+            "Televisión",
+
+            "Videojuego",
+
+            "Chat IA",
+
+            "Mensaje",
+
+            "Notificación",
+
+            "Anuncio",
+
+            "Placa de Auto",
+
+            "Reloj",
+
+            "TikTok",
+
+            "YouTube",
+
+            "Spotify",
+
+            "Persona",
+
+            "Conversación",
+
+            "Sueño",
+
+            "Pensamiento",
+
+            "Escuela",
+
+            "Calle",
+
+            "Otro"
+        ]
+    )
+
+    # ==================================================
+    # INTENSIDAD
+    # ==================================================
+
+    intensity = st.slider(
+
+        "⚡ Intensidad Percibida",
+
+        1,
+
+        10,
+
+        5
+    )
+
+    # ==================================================
+    # ESTADO EMOCIONAL
+    # ==================================================
+
+    emotional_state = st.selectbox(
+
+        "🧠 Estado Emocional",
+
+        [
+
+            "Tranquilo",
+
+            "Ansioso",
+
+            "Motivado",
+
+            "Inspirado",
+
+            "Cansado",
+
+            "Emocionado",
+
+            "Confundido",
+
+            "Curioso",
+
+            "Neutral"
+        ]
+    )
+
+    # ==================================================
+    # UBICACIÓN
+    # ==================================================
+
+    location = st.selectbox(
+
+        "📍 Ubicación",
+
+        [
+
+            "Casa",
+
+            "Escuela",
+
+            "Trabajo",
+
+            "Calle",
+
+            "Transporte",
+
+            "Internet",
+
+            "Habitación",
+
+            "Otro"
+        ]
+    )
+
+    # ==================================================
+    # REPETICIÓN
+    # ==================================================
+
+    repeated_signal = st.selectbox(
+
+        "🔁 ¿La viste varias veces?",
+
+        [
+
+            "Sí",
+
+            "No"
+        ]
+    )
+
+    # ==================================================
+    # TESTIGOS
+    # ==================================================
+
+    witnesses = st.selectbox(
+
+        "👁️ ¿Alguien más la vio?",
+
+        [
+
+            "Sí",
+
+            "No",
+
+            "No estoy seguro"
+        ]
+    )
+
+    # ==================================================
+    # CLIMA
+    # ==================================================
+
+    weather_context = st.selectbox(
+
+        "🌦️ Contexto Ambiental",
+
+        [
+
+            "Día",
+
+            "Noche",
+
+            "Lluvia",
+
+            "Silencio",
+
+            "Música",
+
+            "Tráfico",
+
+            "Calma",
+
+            "Ruido",
+
+            "Otro"
+        ]
+    )
+
+    # ==================================================
+    # NOTAS
+    # ==================================================
+
+    personal_note = st.text_area(
+
+        "📝 Nota Personal",
+
+        placeholder="¿Qué ocurrió o qué sentiste?"
+    )
+
+    # ==================================================
+    # GUARDAR
+    # ==================================================
+
+    if st.button("💾 Guardar Señal"):
 
         if signal_input != "":
 
@@ -417,17 +677,70 @@ if page == "⚡ Registro Rápido":
                 "type":
                 signal_type,
 
+                "environment":
+                environment,
+
+                "origin":
+                origin,
+
+                "intensity":
+                intensity,
+
+                "emotion":
+                emotional_state,
+
+                "location":
+                location,
+
+                "repeated":
+                repeated_signal,
+
+                "witnesses":
+                witnesses,
+
+                "weather":
+                weather_context,
+
+                "note":
+                personal_note,
+
                 "timestamp":
                 str(datetime.now())
             }
+
+            # ==========================================
+            # FIREBASE SAVE
+            # ==========================================
 
             db.collection(
                 "signals"
             ).add(signal_data)
 
             st.success(
-                f"Señal guardada como: {signal_type}"
+                "🌌 Señal registrada correctamente."
             )
+
+            st.info(f"""
+
+⚡ Señal:
+{signal_input}
+
+📡 Origen:
+{origin}
+
+🌎 Entorno:
+{environment}
+
+⚡ Intensidad:
+{intensity}/10
+
+🧠 Estado:
+{emotional_state}
+
+📍 Ubicación:
+{location}
+
+""")
 
 # ==================================================
 # CONSTELACIÓN DEL DÍA
