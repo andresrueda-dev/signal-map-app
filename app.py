@@ -19,28 +19,23 @@ from datetime import datetime
 # FIREBASE INIT
 # ==================================================
 
-if not firebase_admin._apps:
-
-    import json
-
-firebase_secret = json.loads(
-    st.secrets["firebase"]
-)
-
 import json
 
-firebase_secret = json.loads(
-    st.secrets["firebase"]
-)
+if not firebase_admin._apps:
 
-cred = credentials.Certificate(
-    firebase_secret
-)
+    firebase_secret = json.loads(
+        st.secrets["firebase"]
+    )
 
-    firebase_admin.initialize_app(cred)
+    cred = credentials.Certificate(
+        firebase_secret
+    )
+
+    firebase_admin.initialize_app(
+        cred
+    )
 
 db = firestore.client()
-
 # ==================================================
 # CONFIGURACIÓN GENERAL
 # ==================================================
