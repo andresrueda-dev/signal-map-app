@@ -3,9 +3,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 import numpy as np
 import pandas as pd
-import json
 import os
-import glob
 import re
 import easyocr
 import firebase_admin
@@ -19,16 +17,10 @@ from datetime import datetime
 # FIREBASE INIT
 # ==================================================
 
-import json
-
 if not firebase_admin._apps:
 
-    firebase_secret = json.loads(
-        st.secrets["firebase"]
-    )
-
     cred = credentials.Certificate(
-        firebase_secret
+        dict(st.secrets["firebase"])
     )
 
     firebase_admin.initialize_app(
@@ -36,6 +28,7 @@ if not firebase_admin._apps:
     )
 
 db = firestore.client()
+
 # ==================================================
 # CONFIGURACIÓN GENERAL
 # ==================================================
@@ -88,7 +81,7 @@ div.stMetric{
     border-radius:10px;
 }
 
-input{
+input, textarea{
 
     border-radius:10px !important;
 }
@@ -213,7 +206,7 @@ if st.session_state["logged"] == False:
                 })
 
                 st.success(
-                    "Cuenta creada."
+                    "Cuenta creada correctamente."
                 )
 
     # ==================================================
@@ -258,7 +251,7 @@ else:
     role = "USER"
 
 # ==================================================
-# SIDEBAR VISUAL SYSTEM
+# SIDEBAR
 # ==================================================
 
 st.sidebar.success(
@@ -340,12 +333,6 @@ st.sidebar.markdown("""
 
 """)
 
-st.sidebar.markdown("---")
-
-st.sidebar.caption(
-    "Signal Map AI v3.0"
-)
-
 # ==================================================
 # CLASIFICADOR IA
 # ==================================================
@@ -391,10 +378,6 @@ def classify_signal(signal):
     return "Patrón General"
 
 # ==================================================
-# REGISTRO RÁPIDO
-# ==================================================
-
-# ==================================================
 # REGISTRO COMPLETO DE SEÑAL
 # ==================================================
 
@@ -402,36 +385,12 @@ if page == "⚡ Registro Rápido":
 
     st.title("🌌 Registro Completo de Señal")
 
-    st.markdown("""
-
-Sistema contextual de captura.
-
-Puedes registrar:
-
-• señales rápidas  
-• sincronías  
-• contexto emocional  
-• entorno de aparición  
-• resonancia  
-• dispositivos  
-• observaciones  
-
-""")
-
-    # ==================================================
-    # SEÑAL PRINCIPAL
-    # ==================================================
-
     signal_input = st.text_input(
 
         "⚡ Señal Detectada",
 
         placeholder="Ejemplo: 11:11"
     )
-
-    # ==================================================
-    # ENTORNO
-    # ==================================================
 
     environment = st.selectbox(
 
@@ -458,10 +417,6 @@ Puedes registrar:
             "🔮 Otro"
         ]
     )
-
-    # ==================================================
-    # ORIGEN
-    # ==================================================
 
     origin = st.selectbox(
 
@@ -513,10 +468,6 @@ Puedes registrar:
         ]
     )
 
-    # ==================================================
-    # INTENSIDAD
-    # ==================================================
-
     intensity = st.slider(
 
         "⚡ Intensidad Percibida",
@@ -527,10 +478,6 @@ Puedes registrar:
 
         5
     )
-
-    # ==================================================
-    # ESTADO EMOCIONAL
-    # ==================================================
 
     emotional_state = st.selectbox(
 
@@ -558,10 +505,6 @@ Puedes registrar:
         ]
     )
 
-    # ==================================================
-    # UBICACIÓN
-    # ==================================================
-
     location = st.selectbox(
 
         "📍 Ubicación",
@@ -586,10 +529,6 @@ Puedes registrar:
         ]
     )
 
-    # ==================================================
-    # REPETICIÓN
-    # ==================================================
-
     repeated_signal = st.selectbox(
 
         "🔁 ¿La viste varias veces?",
@@ -601,10 +540,6 @@ Puedes registrar:
             "No"
         ]
     )
-
-    # ==================================================
-    # TESTIGOS
-    # ==================================================
 
     witnesses = st.selectbox(
 
@@ -619,10 +554,6 @@ Puedes registrar:
             "No estoy seguro"
         ]
     )
-
-    # ==================================================
-    # CLIMA
-    # ==================================================
 
     weather_context = st.selectbox(
 
@@ -650,20 +581,12 @@ Puedes registrar:
         ]
     )
 
-    # ==================================================
-    # NOTAS
-    # ==================================================
-
     personal_note = st.text_area(
 
         "📝 Nota Personal",
 
         placeholder="¿Qué ocurrió o qué sentiste?"
     )
-
-    # ==================================================
-    # GUARDAR
-    # ==================================================
 
     if st.button("💾 Guardar Señal"):
 
@@ -715,10 +638,6 @@ Puedes registrar:
                 str(datetime.now())
             }
 
-            # ==========================================
-            # FIREBASE SAVE
-            # ==========================================
-
             db.collection(
                 "signals"
             ).add(signal_data)
@@ -727,46 +646,20 @@ Puedes registrar:
                 "🌌 Señal registrada correctamente."
             )
 
-            st.info(f"""
-
-⚡ Señal:
-{signal_input}
-
-📡 Origen:
-{origin}
-
-🌎 Entorno:
-{environment}
-
-⚡ Intensidad:
-{intensity}/10
-
-🧠 Estado:
-{emotional_state}
-
-📍 Ubicación:
-{location}
-
-""")
-
 # ==================================================
 # CONSTELACIÓN DEL DÍA
 # ==================================================
 
 if page == "🌌 Constelación del Día":
 
-    st.title("Constelación del Día")
+    st.title("🌌 Constelación del Día")
 
     docs = db.collection(
         "signals"
     ).where(
-
         "user",
-
         "==",
-
         st.session_state["user"]
-
     ).stream()
 
     signals = []
@@ -841,7 +734,7 @@ if page == "🌌 Constelación del Día":
 
 if page == "🖼️ Cargar Imagen":
 
-    st.title("Cargar Imagen de Señales")
+    st.title("🖼️ Cargar Imagen")
 
     uploaded_file = st.file_uploader(
 
@@ -856,7 +749,6 @@ if page == "🖼️ Cargar Imagen":
 
         st.image(
             image,
-            caption="Imagen Cargada",
             use_container_width=True
         )
 
@@ -872,7 +764,9 @@ if page == "🖼️ Cargar Imagen":
 
             detected_text += result[1] + " "
 
-        st.subheader("Texto Detectado")
+        st.subheader(
+            "Texto Detectado"
+        )
 
         st.write(detected_text)
 
@@ -882,18 +776,14 @@ if page == "🖼️ Cargar Imagen":
 
 if page == "📖 Diario de Señales":
 
-    st.title("Diario de Señales")
+    st.title("📖 Diario de Señales")
 
     docs = db.collection(
         "signals"
     ).where(
-
         "user",
-
         "==",
-
         st.session_state["user"]
-
     ).stream()
 
     data_list = []
@@ -906,7 +796,9 @@ if page == "📖 Diario de Señales":
 
     if len(data_list) > 0:
 
-        df = pd.DataFrame(data_list)
+        df = pd.DataFrame(
+            data_list
+        )
 
         st.dataframe(
             df,
@@ -919,18 +811,14 @@ if page == "📖 Diario de Señales":
 
 if page == "📈 Timeline":
 
-    st.title("Timeline de Señales")
+    st.title("📈 Timeline")
 
     docs = db.collection(
         "signals"
     ).where(
-
         "user",
-
         "==",
-
         st.session_state["user"]
-
     ).stream()
 
     timeline = []
@@ -958,7 +846,7 @@ if page == "📈 Timeline":
 
 if page == "🧠 Insights IA":
 
-    st.title("Insights IA")
+    st.title("🧠 Insights IA")
 
     st.info("""
 
@@ -968,39 +856,6 @@ La IA analiza:
 • sincronías  
 • repetición estructural  
 • patrones dominantes  
-
-""")
-
-# ==================================================
-# PREDICCIÓN NUMÉRICA
-# ==================================================
-
-if page == "🎲 Predicción Numérica":
-
-    st.title("Predicción Numérica")
-
-    st.info("""
-
-Generador experimental basado en:
-
-• frecuencias  
-• patrones  
-• resonancias  
-• señales registradas  
-
-""")
-
-# ==================================================
-# CONSTELLATION MAP
-# ==================================================
-
-if page == "🧩 Constellation Map":
-
-    st.title("🧩 Constellation Map")
-
-    st.info("""
-
-Mapa avanzado de nodos y agrupaciones.
 
 """)
 
@@ -1069,48 +924,6 @@ if page == "⚡ Tesla Nodes":
         )
 
 # ==================================================
-# CARTOGRAPHY LAYER
-# ==================================================
-
-if page == "🗺️ Cartography Layer":
-
-    st.title("🗺️ Cartography Layer")
-
-    st.info("""
-
-Heatmaps y capas de densidad.
-
-""")
-
-# ==================================================
-# AI INTERPRETATION
-# ==================================================
-
-if page == "🔮 AI Interpretation":
-
-    st.title("🔮 AI Interpretation")
-
-    st.info("""
-
-Confidence score y lectura contextual IA.
-
-""")
-
-# ==================================================
-# PATTERN EVOLUTION
-# ==================================================
-
-if page == "📡 Pattern Evolution":
-
-    st.title("📡 Pattern Evolution")
-
-    st.info("""
-
-Seguimiento evolutivo de patrones.
-
-""")
-
-# ==================================================
 # MASTER CONSOLE
 # ==================================================
 
@@ -1126,10 +939,6 @@ if page == "🛰️ Master Console":
 
         st.title(
             "🛰️ MASTER CONSOLE"
-        )
-
-        st.success(
-            "Master Node Connected"
         )
 
         docs = db.collection(
