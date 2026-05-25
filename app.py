@@ -1,4 +1,3 @@
-
 import streamlit as st
 import plotly.graph_objects as go
 import plotly.express as px
@@ -9,9 +8,26 @@ import os
 import glob
 import re
 import easyocr
+import firebase_admin
 
+from firebase_admin import credentials
+from firebase_admin import firestore
 from PIL import Image
 from datetime import datetime
+
+# ==================================================
+# FIREBASE INIT
+# ==================================================
+
+if not firebase_admin._apps:
+
+    cred = credentials.Certificate(
+        "firebase_config.json"
+    )
+
+    firebase_admin.initialize_app(cred)
+
+db = firestore.client()
 
 # ==================================================
 # CONFIGURACIÓN GENERAL
@@ -65,6 +81,11 @@ div.stMetric{
     border-radius:10px;
 }
 
+input{
+
+    border-radius:10px !important;
+}
+
 </style>
 
 """, unsafe_allow_html=True)
@@ -76,8 +97,182 @@ div.stMetric{
 os.makedirs("signals", exist_ok=True)
 
 # ==================================================
+# SESSION STATE
+# ==================================================
+
+if "logged" not in st.session_state:
+
+    st.session_state["logged"] = False
+
+if "user" not in st.session_state:
+
+    st.session_state["user"] = ""
+
+# ==================================================
+# LOGIN SCREEN
+# ==================================================
+
+if st.session_state["logged"] == False:
+
+    st.title("🌌 SIGNAL MAP AI")
+
+    st.subheader(
+        "Cloud Signal Network"
+    )
+
+    st.markdown("---")
+
+    login_tab, register_tab, recovery_tab = st.tabs(
+
+        [
+
+            "🔐 Login",
+
+            "🛰️ Register",
+
+            "🔑 Recover Password"
+        ]
+    )
+
+    # ==================================================
+    # LOGIN
+    # ==================================================
+
+    with login_tab:
+
+        login_email = st.text_input(
+            "Correo",
+            key="login_email"
+        )
+
+        login_password = st.text_input(
+            "Contraseña",
+            type="password",
+            key="login_password"
+        )
+
+        login_button = st.button(
+            "Ingresar"
+        )
+
+        if login_button:
+
+            if login_email != "":
+
+                st.session_state["logged"] = True
+
+                st.session_state["user"] = login_email
+
+                st.success(
+                    "Access Granted"
+                )
+
+                st.rerun()
+
+    # ==================================================
+    # REGISTER
+    # ==================================================
+
+    with register_tab:
+
+        register_email = st.text_input(
+            "Nuevo correo",
+            key="register_email"
+        )
+
+        register_password = st.text_input(
+            "Nueva contraseña",
+            type="password",
+            key="register_password"
+        )
+
+        register_button = st.button(
+            "Crear Cuenta"
+        )
+
+        if register_button:
+
+            if register_email != "":
+
+                db.collection(
+                    "users"
+                ).add({
+
+                    "email":
+                    register_email,
+
+                    "created":
+                    str(datetime.now())
+                })
+
+                st.success(
+                    "Cuenta creada."
+                )
+
+    # ==================================================
+    # RECOVER PASSWORD
+    # ==================================================
+
+    with recovery_tab:
+
+        recovery_email = st.text_input(
+            "Correo de recuperación"
+        )
+
+        recovery_button = st.button(
+            "Recuperar"
+        )
+
+        if recovery_button:
+
+            st.success(
+                f"Recovery link enviado a {recovery_email}"
+            )
+
+    st.stop()
+
+# ==================================================
+# ROLE SYSTEM
+# ==================================================
+
+MASTER_USERS = [
+
+    "TU_CORREO@gmail.com",
+
+    "admin@gmail.com"
+]
+
+if st.session_state["user"] in MASTER_USERS:
+
+    role = "MASTER NODE"
+
+else:
+
+    role = "USER"
+
+# ==================================================
 # SIDEBAR VISUAL SYSTEM
 # ==================================================
+
+st.sidebar.success(
+
+    f"👤 {st.session_state['user']}"
+)
+
+st.sidebar.info(
+
+    f"🛰️ {role}"
+)
+
+logout = st.sidebar.button(
+    "Cerrar Sesión"
+)
+
+if logout:
+
+    st.session_state["logged"] = False
+
+    st.rerun()
 
 st.sidebar.markdown("""
 
@@ -118,7 +313,9 @@ page = st.sidebar.radio(
 
         "🔮 AI Interpretation",
 
-        "📡 Pattern Evolution"
+        "📡 Pattern Evolution",
+
+        "🛰️ Master Console"
     ]
 )
 
@@ -139,7 +336,7 @@ st.sidebar.markdown("""
 st.sidebar.markdown("---")
 
 st.sidebar.caption(
-    "Signal Map AI v2.0"
+    "Signal Map AI v3.0"
 )
 
 # ==================================================
@@ -194,43 +391,12 @@ if page == "⚡ Registro Rápido":
 
     st.title("Registro Rápido de Señales")
 
-    st.markdown("""
-
-Aquí puedes registrar:
-
-• Horas espejo  
-• Números repetitivos  
-• Secuencias  
-• Sincronías  
-• Señales del día
-
-""")
-
     signal_input = st.text_input(
 
         "Escribe una señal",
 
         placeholder="Ejemplo: 11:11"
     )
-
-    today = str(datetime.now().date())
-
-    signal_file = f"signals/{today}.json"
-
-    if os.path.exists(signal_file):
-
-        with open(signal_file, "r", encoding="utf-8") as f:
-
-            daily_data = json.load(f)
-
-    else:
-
-        daily_data = {
-
-            "date": today,
-
-            "signals": []
-        }
 
     if st.button("Guardar Señal"):
 
@@ -242,61 +408,26 @@ Aquí puedes registrar:
 
             signal_data = {
 
-                "signal": signal_input,
+                "user":
+                st.session_state["user"],
 
-                "type": signal_type,
+                "signal":
+                signal_input,
+
+                "type":
+                signal_type,
 
                 "timestamp":
                 str(datetime.now())
             }
 
-            daily_data["signals"].append(
-                signal_data
-            )
-
-            with open(
-
-                signal_file,
-
-                "w",
-
-                encoding="utf-8"
-
-            ) as f:
-
-                json.dump(
-                    daily_data,
-                    f,
-                    indent=4
-                )
+            db.collection(
+                "signals"
+            ).add(signal_data)
 
             st.success(
                 f"Señal guardada como: {signal_type}"
             )
-
-    st.subheader("Señales Registradas Hoy")
-
-    if len(daily_data["signals"]) == 0:
-
-        st.warning(
-            "Aún no hay señales registradas."
-        )
-
-    else:
-
-        for item in daily_data["signals"]:
-
-            st.markdown(f"""
-
-### {item['signal']}
-
-• Tipo:
-{item['type']}
-
-• Hora:
-{item['timestamp']}
-
-""")
 
 # ==================================================
 # CONSTELACIÓN DEL DÍA
@@ -306,130 +437,83 @@ if page == "🌌 Constelación del Día":
 
     st.title("Constelación del Día")
 
-    today = str(datetime.now().date())
+    docs = db.collection(
+        "signals"
+    ).where(
 
-    signal_file = f"signals/{today}.json"
+        "user",
 
-    if os.path.exists(signal_file):
+        "==",
 
-        with open(signal_file, "r", encoding="utf-8") as f:
+        st.session_state["user"]
 
-            daily_data = json.load(f)
+    ).stream()
 
-        freq_map = {}
+    signals = []
 
-        for item in daily_data["signals"]:
+    for doc in docs:
 
-            signal = item["signal"]
+        data = doc.to_dict()
 
-            if signal in freq_map:
+        signals.append(
+            data["signal"]
+        )
 
-                freq_map[signal] += 1
+    if len(signals) > 0:
 
-            else:
+        fig = go.Figure()
 
-                freq_map[signal] = 1
+        angles = np.linspace(
+            0,
+            2*np.pi,
+            len(signals),
+            endpoint=False
+        )
 
-        signals = list(freq_map.keys())
+        radius = np.random.randint(
+            1,
+            10,
+            len(signals)
+        )
 
-        repetitions = list(freq_map.values())
+        x = radius * np.cos(angles)
 
-        if len(signals) > 0:
+        y = radius * np.sin(angles)
 
-            fig = go.Figure()
+        fig.add_trace(
 
-            angles = np.linspace(
-                0,
-                2*np.pi,
-                len(signals),
-                endpoint=False
-            )
+            go.Scatter(
 
-            radius = repetitions
+                x=x,
 
-            x = radius * np.cos(angles)
+                y=y,
 
-            y = radius * np.sin(angles)
+                mode="markers+text",
 
-            for i in range(len(x)):
+                text=signals,
 
-                next_i = (i + 1) % len(x)
+                marker=dict(
 
-                fig.add_trace(
+                    size=20,
 
-                    go.Scatter(
+                    color=radius,
 
-                        x=[x[i], x[next_i]],
-
-                        y=[y[i], y[next_i]],
-
-                        mode="lines",
-
-                        line=dict(
-                            width=2,
-                            color="#7B61FF"
-                        ),
-
-                        showlegend=False
-                    )
-                )
-
-            fig.add_trace(
-
-                go.Scatter(
-
-                    x=x,
-
-                    y=y,
-
-                    mode="markers+text",
-
-                    marker=dict(
-
-                        size=[
-                            r * 15
-                            for r in repetitions
-                        ],
-
-                        color="#B388FF",
-
-                        line=dict(
-                            width=2,
-                            color="white"
-                        )
-                    ),
-
-                    text=signals,
-
-                    textposition="top center"
+                    colorscale="Purples"
                 )
             )
+        )
 
-            fig.update_layout(
+        fig.update_layout(
 
-                height=700,
+            template="plotly_dark",
 
-                paper_bgcolor="#050816",
+            height=700
+        )
 
-                plot_bgcolor="#050816",
-
-                font=dict(
-                    color="white"
-                ),
-
-                xaxis=dict(
-                    visible=False
-                ),
-
-                yaxis=dict(
-                    visible=False
-                )
-            )
-
-            st.plotly_chart(
-                fig,
-                use_container_width=True
-            )
+        st.plotly_chart(
+            fig,
+            use_container_width=True
+        )
 
 # ==================================================
 # CARGAR IMAGEN
@@ -480,39 +564,34 @@ if page == "📖 Diario de Señales":
 
     st.title("Diario de Señales")
 
-    files = sorted(
-        glob.glob("signals/*.json")
-    )
+    docs = db.collection(
+        "signals"
+    ).where(
 
-    if len(files) == 0:
+        "user",
 
-        st.warning(
-            "Aún no hay registros."
+        "==",
+
+        st.session_state["user"]
+
+    ).stream()
+
+    data_list = []
+
+    for doc in docs:
+
+        data_list.append(
+            doc.to_dict()
         )
 
-    else:
+    if len(data_list) > 0:
 
-        for file in reversed(files):
+        df = pd.DataFrame(data_list)
 
-            with open(file, "r", encoding="utf-8") as f:
-
-                data = json.load(f)
-
-            st.subheader(data["date"])
-
-            for item in data["signals"]:
-
-                st.markdown(f"""
-
-### {item['signal']}
-
-• Tipo:
-{item['type']}
-
-• Hora:
-{item['timestamp']}
-
-""")
+        st.dataframe(
+            df,
+            use_container_width=True
+        )
 
 # ==================================================
 # TIMELINE
@@ -522,30 +601,30 @@ if page == "📈 Timeline":
 
     st.title("Timeline de Señales")
 
-    files = sorted(
-        glob.glob("signals/*.json")
-    )
+    docs = db.collection(
+        "signals"
+    ).where(
 
-    timeline_data = []
+        "user",
 
-    for file in files:
+        "==",
 
-        with open(file, "r", encoding="utf-8") as f:
+        st.session_state["user"]
 
-            data = json.load(f)
+    ).stream()
 
-        timeline_data.append({
+    timeline = []
 
-            "Fecha": data["date"],
+    for doc in docs:
 
-            "Cantidad":
-            len(data["signals"])
-        })
+        timeline.append(
+            doc.to_dict()
+        )
 
-    if len(timeline_data) > 0:
+    if len(timeline) > 0:
 
         df = pd.DataFrame(
-            timeline_data
+            timeline
         )
 
         st.dataframe(
@@ -613,36 +692,32 @@ if page == "⚡ Tesla Nodes":
 
     st.title("⚡ Tesla Nodes")
 
-    files = sorted(
-        glob.glob("signals/*.json")
-    )
+    docs = db.collection(
+        "signals"
+    ).stream()
 
     frequency_map = {}
 
-    for file in files:
+    for doc in docs:
 
-        with open(file, "r", encoding="utf-8") as f:
+        data = doc.to_dict()
 
-            data = json.load(f)
+        nums = re.findall(
+            r'\d',
+            data["signal"]
+        )
 
-        for item in data["signals"]:
+        for n in nums:
 
-            nums = re.findall(
-                r'\d',
-                item["signal"]
-            )
+            n = int(n)
 
-            for n in nums:
+            if n in frequency_map:
 
-                n = int(n)
+                frequency_map[n] += 1
 
-                if n in frequency_map:
+            else:
 
-                    frequency_map[n] += 1
-
-                else:
-
-                    frequency_map[n] = 1
+                frequency_map[n] = 1
 
     if len(frequency_map) > 0:
 
@@ -714,3 +789,53 @@ if page == "📡 Pattern Evolution":
 Seguimiento evolutivo de patrones.
 
 """)
+
+# ==================================================
+# MASTER CONSOLE
+# ==================================================
+
+if page == "🛰️ Master Console":
+
+    if role != "MASTER NODE":
+
+        st.error(
+            "Access Denied"
+        )
+
+    else:
+
+        st.title(
+            "🛰️ MASTER CONSOLE"
+        )
+
+        st.success(
+            "Master Node Connected"
+        )
+
+        docs = db.collection(
+            "signals"
+        ).stream()
+
+        all_data = []
+
+        for doc in docs:
+
+            all_data.append(
+                doc.to_dict()
+            )
+
+        if len(all_data) > 0:
+
+            df = pd.DataFrame(
+                all_data
+            )
+
+            st.dataframe(
+                df,
+                use_container_width=True
+            )
+
+            st.metric(
+                "Global Signals",
+                len(df)
+            )
