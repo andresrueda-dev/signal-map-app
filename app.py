@@ -84,27 +84,21 @@ os.makedirs("signals", exist_ok=True)
 # MENÚ PRINCIPAL
 # ==================================================
 
-st.sidebar.title("SIGNAL MAP AI")
+[
+    "Registro Rápido",
 
-page = st.sidebar.radio(
+    "Constelación del Día",
 
-    "Menú Principal",
+    "Cargar Imagen",
 
-    [
+    "Diario de Señales",
 
-        "Registro Rápido",
+    "Timeline",
 
-        "Constelación del Día",
+    "Insights IA",
 
-        "Cargar Imagen",
-
-        "Diario de Señales",
-
-        "Timeline",
-
-        "Insights IA"
-    ]
-)
+    "Predicción Numérica"
+]
 
 # ==================================================
 # CLASIFICADOR IA
@@ -718,3 +712,279 @@ y repetición estructural dentro de los
 registros diarios.
 
 """)
+
+# ==================================================
+# PREDICCIÓN NUMÉRICA
+# ==================================================
+
+if page == "Predicción Numérica":
+
+    st.title("Predicción Numérica")
+
+    st.markdown("""
+
+Este módulo genera líneas numéricas basadas en:
+
+• Señales registradas hoy  
+• Frecuencias repetidas  
+• Patrones dominantes  
+• Horas espejo  
+• Secuencias recurrentes
+
+""")
+
+    today = str(datetime.now().date())
+
+    signal_file = f"signals/{today}.json"
+
+    if os.path.exists(signal_file):
+
+        with open(signal_file, "r", encoding="utf-8") as f:
+
+            daily_data = json.load(f)
+
+        all_numbers = []
+
+        # ==========================================
+        # EXTRAER NÚMEROS
+        # ==========================================
+
+        for item in daily_data["signals"]:
+
+            signal = item["signal"]
+
+            nums = re.findall(r'\d+', signal)
+
+            for n in nums:
+
+                for digit in n:
+
+                    number = int(digit)
+
+                    if number > 0:
+
+                        all_numbers.append(number)
+
+        # ==========================================
+        # VALIDAR
+        # ==========================================
+
+        if len(all_numbers) == 0:
+
+            st.warning(
+                "No hay suficientes señales numéricas."
+            )
+
+        else:
+
+            # ======================================
+            # FRECUENCIAS
+            # ======================================
+
+            freq_map = {}
+
+            for num in all_numbers:
+
+                if num in freq_map:
+
+                    freq_map[num] += 1
+
+                else:
+
+                    freq_map[num] = 1
+
+            # ======================================
+            # TABLA
+            # ======================================
+
+            st.subheader(
+                "Frecuencias Detectadas"
+            )
+
+            freq_df = pd.DataFrame({
+
+                "Número":
+                list(freq_map.keys()),
+
+                "Frecuencia":
+                list(freq_map.values())
+
+            })
+
+            st.dataframe(
+                freq_df,
+                use_container_width=True
+            )
+
+            # ======================================
+            # ORDENAR
+            # ======================================
+
+            sorted_numbers = sorted(
+
+                freq_map,
+
+                key=freq_map.get,
+
+                reverse=True
+            )
+
+            dominant_number = sorted_numbers[0]
+
+            # ======================================
+            # MELATE NORMAL
+            # ======================================
+
+            st.subheader(
+                "Línea Tipo Melate"
+            )
+
+            melate_numbers = []
+
+            while len(melate_numbers) < 6:
+
+                n = np.random.choice(
+                    sorted_numbers
+                )
+
+                generated = int(
+
+                    (
+                        n *
+                        np.random.randint(5, 12)
+                    ) % 56
+
+                ) + 1
+
+                if generated not in melate_numbers:
+
+                    melate_numbers.append(
+                        generated
+                    )
+
+            melate_numbers.sort()
+
+            st.success(f"""
+
+{melate_numbers}
+
+""")
+
+            # ======================================
+            # MELATE RETRO
+            # ======================================
+
+            st.subheader(
+                "Línea Tipo Melate Retro"
+            )
+
+            retro_numbers = []
+
+            while len(retro_numbers) < 6:
+
+                n = np.random.choice(
+                    sorted_numbers
+                )
+
+                generated = int(
+
+                    (
+                        n *
+                        np.random.randint(2, 9)
+                    ) % 39
+
+                ) + 1
+
+                if generated not in retro_numbers:
+
+                    retro_numbers.append(
+                        generated
+                    )
+
+            retro_numbers.sort()
+
+            st.success(f"""
+
+{retro_numbers}
+
+""")
+
+            # ======================================
+            # POWERBALL
+            # ======================================
+
+            st.subheader(
+                "Línea Tipo PowerBall"
+            )
+
+            power_numbers = []
+
+            while len(power_numbers) < 5:
+
+                n = np.random.choice(
+                    sorted_numbers
+                )
+
+                generated = int(
+
+                    (
+                        n *
+                        np.random.randint(3, 8)
+                    ) % 69
+
+                ) + 1
+
+                if generated not in power_numbers:
+
+                    power_numbers.append(
+                        generated
+                    )
+
+            power_numbers.sort()
+
+            power_special = np.random.randint(
+                1,
+                27
+            )
+
+            st.success(f"""
+
+Números:
+{power_numbers}
+
+Power:
+{power_special}
+
+""")
+
+            # ======================================
+            # IA
+            # ======================================
+
+            st.subheader(
+                "Lectura IA"
+            )
+
+            st.info(f"""
+
+La frecuencia dominante detectada hoy
+fue el número {dominant_number}.
+
+Las líneas generadas utilizan:
+
+• repetición numérica  
+• concentración energética  
+• patrones recurrentes  
+• distribución de frecuencias  
+
+Las combinaciones fueron construidas
+a partir de las señales registradas
+durante el día.
+
+""")
+
+    else:
+
+        st.warning(
+            "Aún no existen señales registradas hoy."
+        )
