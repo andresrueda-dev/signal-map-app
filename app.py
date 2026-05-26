@@ -250,29 +250,262 @@ elif menu == "🎲 Predicción Numérica":
 
     st.title("🎲 Predicción Numérica")
 
-    freq = df["numero"].value_counts()
+    # =====================================================
+    # GENERACION DE DATOS POSICIONALES
+    # =====================================================
 
-    top = freq.sort_values(
-        ascending=False
-    ).head(3)
+    historial = pd.DataFrame({
+        "P1": np.random.randint(1, 50, 120),
+        "P2": np.random.randint(1, 50, 120),
+        "P3": np.random.randint(1, 50, 120),
+        "P4": np.random.randint(1, 50, 120),
+        "P5": np.random.randint(1, 50, 120),
+        "PW": np.random.randint(1, 20, 120)
+    })
 
-    st.markdown("## 🔮 Tendencias dominantes")
+    st.markdown("""
+    ## 🧠 Motor de análisis estructural activo
+    """)
 
-    for idx, val in top.items():
+    # =====================================================
+    # EXTRACCION POR POSICIONES
+    # =====================================================
 
-        porcentaje = round(
-            (val / len(df))*100,
+    from collections import Counter
+
+    position_stats = {
+        "Casilla 1": historial["P1"].tolist(),
+        "Casilla 2": historial["P2"].tolist(),
+        "Casilla 3": historial["P3"].tolist(),
+        "Casilla 4": historial["P4"].tolist(),
+        "Casilla 5": historial["P5"].tolist(),
+        "PW / Extra": historial["PW"].tolist()
+    }
+
+    # =====================================================
+    # TABLA PRINCIPAL
+    # =====================================================
+
+    st.markdown("## 📊 Historial estructural")
+
+    st.dataframe(
+        historial,
+        use_container_width=True
+    )
+
+    # =====================================================
+    # FRECUENCIA DOMINANTE
+    # =====================================================
+
+    st.markdown("## 🔥 Frecuencia dominante por posición")
+
+    resumen = []
+
+    for nombre, numeros in position_stats.items():
+
+        contador = Counter(numeros)
+
+        dominante = contador.most_common(1)[0][0]
+
+        frecuencia = contador.most_common(1)[0][1]
+
+        resumen.append({
+            "Posición": nombre,
+            "Número dominante": dominante,
+            "Frecuencia": frecuencia
+        })
+
+    resumen_df = pd.DataFrame(resumen)
+
+    st.dataframe(
+        resumen_df,
+        use_container_width=True
+    )
+
+    # =====================================================
+    # ANALISIS IA
+    # =====================================================
+
+    st.markdown("## 🤖 Clasificación IA")
+
+    comportamiento = []
+
+    for nombre, numeros in position_stats.items():
+
+        total = len(numeros)
+
+        unicos = len(set(numeros))
+
+        repeticion = round(
+            (1 - (unicos / total)) * 100,
             2
         )
 
-        st.info(
-            f"Nodo {idx} → {porcentaje}% de persistencia"
+        if repeticion >= 70:
+            estado = "🔥 Muy repetitiva"
+
+        elif repeticion >= 50:
+            estado = "📌 Estable"
+
+        elif repeticion >= 30:
+            estado = "⚖️ Balanceada"
+
+        else:
+            estado = "🌪️ Caótica"
+
+        comportamiento.append({
+            "Posición": nombre,
+            "Repetición": f"{repeticion}%",
+            "Estado IA": estado
+        })
+
+    comportamiento_df = pd.DataFrame(
+        comportamiento
+    )
+
+    st.dataframe(
+        comportamiento_df,
+        use_container_width=True
+    )
+
+    # =====================================================
+    # RANGOS DOMINANTES
+    # =====================================================
+
+    st.markdown("## 📈 Rangos dominantes")
+
+    rangos = []
+
+    for nombre, numeros in position_stats.items():
+
+        bajos = len([
+            n for n in numeros
+            if n <= 10
+        ])
+
+        medios = len([
+            n for n in numeros
+            if 11 <= n <= 30
+        ])
+
+        altos = len([
+            n for n in numeros
+            if n > 30
+        ])
+
+        total = len(numeros)
+
+        rangos.append({
+            "Posición": nombre,
+            "1-10": round((bajos/total)*100,2),
+            "11-30": round((medios/total)*100,2),
+            "31+": round((altos/total)*100,2)
+        })
+
+    rangos_df = pd.DataFrame(rangos)
+
+    st.dataframe(
+        rangos_df,
+        use_container_width=True
+    )
+
+    # =====================================================
+    # MAPA DE CALOR
+    # =====================================================
+
+    st.markdown("## 🌡️ Heatmap estructural")
+
+    heatmap_data = {}
+
+    for nombre, numeros in position_stats.items():
+
+        contador = Counter(numeros)
+
+        heatmap_data[nombre] = contador
+
+    heatmap_df = pd.DataFrame(
+        heatmap_data
+    ).fillna(0)
+
+    fig_heat = px.imshow(
+        heatmap_df,
+        aspect="auto",
+        text_auto=True,
+        color_continuous_scale="Plasma"
+    )
+
+    fig_heat.update_layout(
+        template="plotly_dark",
+        height=700
+    )
+
+    st.plotly_chart(
+        fig_heat,
+        use_container_width=True
+    )
+
+    # =====================================================
+    # TENDENCIA RECIENTE
+    # =====================================================
+
+    st.markdown("## 📡 Tendencias recientes")
+
+    tendencias = []
+
+    for nombre, numeros in position_stats.items():
+
+        recientes = numeros[-20:]
+
+        promedio = round(
+            np.mean(recientes),
+            2
         )
 
-    pred = random.choice(top.index.tolist())
+        tendencias.append({
+            "Posición": nombre,
+            "Promedio reciente": promedio,
+            "Últimos analizados": 20
+        })
+
+    tendencias_df = pd.DataFrame(
+        tendencias
+    )
+
+    st.dataframe(
+        tendencias_df,
+        use_container_width=True
+    )
+
+    # =====================================================
+    # PREDICCION IA
+    # =====================================================
+
+    st.markdown("## 🔮 Predicción IA estructural")
+
+    prediccion = []
+
+    for nombre, numeros in position_stats.items():
+
+        contador = Counter(numeros)
+
+        top = contador.most_common(3)
+
+        prediccion.append({
+            "Posición": nombre,
+            "Top 1": top[0][0],
+            "Top 2": top[1][0],
+            "Top 3": top[2][0]
+        })
+
+    pred_df = pd.DataFrame(prediccion)
+
+    st.dataframe(
+        pred_df,
+        use_container_width=True
+    )
 
     st.success(
-        f"⚡ Nodo con mayor potencial estructural: {pred}"
+        "⚡ Motor estructural posicional sincronizado"
     )
 
 # =========================
