@@ -1,5 +1,5 @@
 # =========================
-# SIGNALMAP IA - CORE ENGINE EVOLUTION
+# SIGNALMAP IA - CORE ENGINE EVOLUTION X
 # =========================
 
 import streamlit as st
@@ -49,6 +49,12 @@ h1,h2,h3,h4 {
     padding: 10px;
 }
 
+.stMetric {
+    background-color: #111827;
+    padding: 10px;
+    border-radius: 14px;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -64,31 +70,115 @@ if "registro_senales" not in st.session_state:
 # =========================
 
 GAME_CONFIG = {
+
     "TRIS": {
         "max": 9,
-        "cantidad": 5
+        "cantidad": 5,
+        "min": 0
     },
 
     "Melate": {
         "max": 56,
-        "cantidad": 6
+        "cantidad": 6,
+        "min": 1
     },
 
     "Chispazo": {
         "max": 28,
-        "cantidad": 5
+        "cantidad": 5,
+        "min": 1
     },
 
     "Powerball": {
         "max": 69,
-        "cantidad": 5
+        "cantidad": 5,
+        "min": 1
+    },
+
+    "Mega Millions": {
+        "max": 70,
+        "cantidad": 5,
+        "min": 1
     },
 
     "Gana Gato": {
-        "max": 9,
-        "cantidad": 8
+        "max": 5,
+        "cantidad": 8,
+        "min": 1
     }
 }
+
+# =========================
+# FUNCIONES IA
+# =========================
+
+def generar_datos():
+
+    minimo = GAME_CONFIG[sorteo]["min"]
+    maximo = GAME_CONFIG[sorteo]["max"]
+
+    numeros = np.random.randint(
+        minimo,
+        maximo + 1,
+        150
+    )
+
+    timestamps = pd.date_range(
+        start=datetime.now(),
+        periods=150,
+        freq="min"
+    )
+
+    df = pd.DataFrame({
+        "numero": numeros,
+        "timestamp": timestamps
+    })
+
+    return df
+
+def espejo(numero):
+
+    mapa = {
+        "0":"5",
+        "1":"6",
+        "2":"7",
+        "3":"8",
+        "4":"9",
+        "5":"0",
+        "6":"1",
+        "7":"2",
+        "8":"3",
+        "9":"4"
+    }
+
+    texto = str(numero)
+
+    resultado = ""
+
+    for d in texto:
+
+        if d in mapa:
+            resultado += mapa[d]
+        else:
+            resultado += d
+
+    return resultado
+
+def calcular_convergencia(freq_max, sync):
+
+    score = (freq_max * 10) + (sync * 5)
+
+    if score >= 120:
+        return "🔥 CRÍTICA"
+
+    elif score >= 80:
+        return "⚡ ALTA"
+
+    elif score >= 40:
+        return "📡 MEDIA"
+
+    else:
+        return "🌊 BAJA"
 
 # =========================
 # SIDEBAR
@@ -105,7 +195,9 @@ menu = st.sidebar.radio(
     "Navegación",
     [
         "🏠 Dashboard",
+        "🎯 Sorteo Número Sugerido",
         "🧠 AI Interpretation",
+        "🪞 Dualidad & Espejo",
         "🪐 Constellation Map",
         "📈 Pattern Evolution",
         "🎲 Predicción Numérica",
@@ -118,31 +210,8 @@ menu = st.sidebar.radio(
 )
 
 # =========================
-# GENERADOR UNIVERSAL
+# DATA
 # =========================
-
-def generar_datos():
-
-    max_num = GAME_CONFIG[sorteo]["max"]
-
-    numeros = np.random.randint(
-        0,
-        max_num + 1,
-        120
-    )
-
-    timestamps = pd.date_range(
-        start=datetime.now(),
-        periods=120,
-        freq="min"
-    )
-
-    df = pd.DataFrame({
-        "numero": numeros,
-        "timestamp": timestamps
-    })
-
-    return df
 
 df = generar_datos()
 
@@ -159,36 +228,52 @@ if menu == "🏠 Dashboard":
     ### Sorteo activo: {sorteo}
     """)
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
+
+    freq = df["numero"].value_counts()
+
+    dominante = freq.idxmax()
+
+    persistencia = freq.max()
+
+    sincronias = len(
+        freq[freq > 5]
+    )
+
+    convergencia = calcular_convergencia(
+        persistencia,
+        sincronias
+    )
 
     col1.metric(
-        "Patrones",
-        random.randint(10, 30)
+        "Nodo Dominante",
+        dominante
     )
 
     col2.metric(
-        "Clusters",
-        random.randint(2, 12)
+        "Persistencia",
+        persistencia
     )
 
     col3.metric(
-        "Persistencia",
-        f"{random.randint(60,95)}%"
+        "Sincronías",
+        sincronias
+    )
+
+    col4.metric(
+        "Convergencia",
+        convergencia
     )
 
     st.divider()
 
-    freq = df["numero"].value_counts().sort_index()
+    freq_sort = freq.sort_index()
 
     fig = px.bar(
-        x=freq.index,
-        y=freq.values,
-        color=freq.values,
-        labels={
-            "x":"Número",
-            "y":"Frecuencia"
-        },
-        title="Frecuencia de Señales"
+        x=freq_sort.index,
+        y=freq_sort.values,
+        color=freq_sort.values,
+        title="Frecuencia Dinámica"
     )
 
     fig.update_layout(
@@ -199,6 +284,145 @@ if menu == "🏠 Dashboard":
         fig,
         use_container_width=True
     )
+
+# =========================
+# SORTEO NUMERO SUGERIDO
+# =========================
+
+elif menu == "🎯 Sorteo Número Sugerido":
+
+    st.title("🎯 Sorteo Número Sugerido")
+
+    st.markdown("""
+    ## 🔥 Motor de convergencia IA
+    """)
+
+    todos = []
+
+    # =====================================
+    # DATOS REGISTRADOS
+    # =====================================
+
+    if st.session_state.registro_senales:
+
+        for registro in st.session_state.registro_senales:
+
+            if registro["sorteo"] == sorteo:
+
+                todos.extend(
+                    registro["numeros"]
+                )
+
+    # =====================================
+    # FALLBACK
+    # =====================================
+
+    if len(todos) == 0:
+
+        todos = df["numero"].tolist()
+
+    contador = Counter(todos)
+
+    top = contador.most_common(
+        GAME_CONFIG[sorteo]["cantidad"]
+    )
+
+    sugeridos = [x[0] for x in top]
+
+    # =====================================
+    # HORA CALIENTE
+    # =====================================
+
+    hora_actual = datetime.now().hour
+
+    if hora_actual < 15:
+        ventana = "13:00 - 15:00"
+
+    elif hora_actual < 19:
+        ventana = "15:00 - 19:00"
+
+    else:
+        ventana = "19:00 - 21:15"
+
+    # =====================================
+    # CONVERGENCIA
+    # =====================================
+
+    convergencia = calcular_convergencia(
+        max(contador.values()),
+        len(contador)
+    )
+
+    # =====================================
+    # DISPLAY
+    # =====================================
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric(
+        "Ventana caliente",
+        ventana
+    )
+
+    col2.metric(
+        "Convergencia IA",
+        convergencia
+    )
+
+    col3.metric(
+        "Señales acumuladas",
+        len(todos)
+    )
+
+    st.divider()
+
+    st.success(
+        f"🎯 Combinación sugerida: {sugeridos}"
+    )
+
+    # =====================================
+    # ESPEJO
+    # =====================================
+
+    espejo_combo = []
+
+    for n in sugeridos:
+
+        espejo_combo.append(
+            espejo(n)
+        )
+
+    st.info(
+        f"🪞 Dualidad / espejo: {espejo_combo}"
+    )
+
+    # =====================================
+    # ANALISIS IA
+    # =====================================
+
+    st.markdown("## 🧠 Lectura estructural")
+
+    pares = len([
+        x for x in sugeridos
+        if int(x) % 2 == 0
+    ])
+
+    impares = len(sugeridos) - pares
+
+    st.write(f"📡 Pares dominantes: {pares}")
+    st.write(f"🌗 Impares dominantes: {impares}")
+
+    if pares > impares:
+
+        st.success(
+            "⚡ Estructura par dominante"
+        )
+
+    else:
+
+        st.warning(
+            "🔥 Estructura impar dominante"
+        )
 
 # =========================
 # AI INTERPRETATION
@@ -223,21 +447,25 @@ elif menu == "🧠 AI Interpretation":
     insights = []
 
     if persistencia > 8:
+
         insights.append(
             f"⚡ Alta persistencia detectada en nodo {dominante}"
         )
 
     if sincronias >= 4:
+
         insights.append(
             "🪐 Sincronías múltiples detectadas"
         )
 
     if dominante % 2 == 0:
+
         insights.append(
             "📡 Predominio estructural par"
         )
 
     else:
+
         insights.append(
             "🌗 Predominio estructural impar"
         )
@@ -245,24 +473,43 @@ elif menu == "🧠 AI Interpretation":
     if dominante > (
         GAME_CONFIG[sorteo]["max"] / 2
     ):
+
         insights.append(
             "🔥 Zona alta dominante"
         )
 
     else:
+
         insights.append(
             "🌊 Zona baja dominante"
         )
 
     for i in insights:
+
         st.success(i)
 
-    st.divider()
+# =========================
+# DUALIDAD
+# =========================
 
-    st.write("### Núcleo IA activo")
+elif menu == "🪞 Dualidad & Espejo":
+
+    st.title("🪞 Dualidad & Espejo")
+
+    numero = st.text_input(
+        "Introduce combinación"
+    )
+
+    if numero:
+
+        resultado = espejo(numero)
+
+        st.success(
+            f"🪞 Espejo estructural: {resultado}"
+        )
 
 # =========================
-# CONSTELLATION MAP
+# CONSTELLATION
 # =========================
 
 elif menu == "🪐 Constellation Map":
@@ -288,11 +535,7 @@ elif menu == "🪐 Constellation Map":
                 ),
                 colorscale='Plasma'
             ),
-            line=dict(width=1),
-            text=[
-                f"Nodo {i}"
-                for i in range(40)
-            ]
+            line=dict(width=1)
         )
     )
 
@@ -320,11 +563,7 @@ elif menu == "📈 Pattern Evolution":
 
     fig = px.line(
         x=np.arange(100),
-        y=evolucion,
-        labels={
-            "x":"Tiempo",
-            "y":"Evolución"
-        }
+        y=evolucion
     )
 
     fig.update_layout(
@@ -345,30 +584,25 @@ elif menu == "🎲 Predicción Numérica":
     st.title("🎲 Predicción Numérica")
 
     cantidad = GAME_CONFIG[sorteo]["cantidad"]
+
     maximo = GAME_CONFIG[sorteo]["max"]
+
+    minimo = GAME_CONFIG[sorteo]["min"]
 
     historial = pd.DataFrame()
 
     for i in range(cantidad):
 
         historial[f"P{i+1}"] = np.random.randint(
-            0,
+            minimo,
             maximo + 1,
             150
         )
-
-    st.markdown("""
-    ## 🧠 Motor estructural activo
-    """)
 
     st.dataframe(
         historial,
         use_container_width=True
     )
-
-    # =========================
-    # ANALISIS
-    # =========================
 
     resumen = []
 
@@ -388,76 +622,14 @@ elif menu == "🎲 Predicción Numérica":
             "Frecuencia": frecuencia
         })
 
-    resumen_df = pd.DataFrame(resumen)
+    resumen_df = pd.DataFrame(
+        resumen
+    )
 
     st.markdown("## 🔥 Dominancia estructural")
 
     st.dataframe(
         resumen_df,
-        use_container_width=True
-    )
-
-    # =========================
-    # IA INTERPRETATIVA
-    # =========================
-
-    st.markdown("## 🤖 Interpretación IA")
-
-    for columna in historial.columns:
-
-        numeros = historial[columna].tolist()
-
-        promedio = round(
-            np.mean(numeros),
-            2
-        )
-
-        repetidos = len(numeros) - len(set(numeros))
-
-        if repetidos > 80:
-            st.success(
-                f"{columna}: Alta persistencia estructural"
-            )
-
-        if promedio > (maximo / 2):
-            st.info(
-                f"{columna}: Tendencia alta dominante"
-            )
-
-        else:
-            st.warning(
-                f"{columna}: Tendencia baja dominante"
-            )
-
-    # =========================
-    # PREDICCION
-    # =========================
-
-    st.markdown("## 🔮 Predicción IA")
-
-    predicciones = []
-
-    for columna in historial.columns:
-
-        numeros = historial[columna].tolist()
-
-        contador = Counter(numeros)
-
-        top = contador.most_common(3)
-
-        predicciones.append({
-            "Posición": columna,
-            "Top 1": top[0][0],
-            "Top 2": top[1][0],
-            "Top 3": top[2][0]
-        })
-
-    pred_df = pd.DataFrame(
-        predicciones
-    )
-
-    st.dataframe(
-        pred_df,
         use_container_width=True
     )
 
@@ -483,9 +655,7 @@ elif menu == "🗺️ Cartography Layer":
         mapa,
         x="x",
         y="y",
-        z="intensidad",
-        nbinsx=20,
-        nbinsy=20
+        z="intensidad"
     )
 
     fig.update_layout(
@@ -506,11 +676,6 @@ elif menu == "📖 Diario de Señales":
 
     st.title("📖 Diario de Señales")
 
-    st.markdown(f"""
-    ### Registro universal activo
-    ### Sorteo actual: {sorteo}
-    """)
-
     numeros = st.text_input(
         "Introduce números separados por coma"
     )
@@ -522,8 +687,11 @@ elif menu == "📖 Diario de Señales":
     if st.button("Guardar señal"):
 
         lista_numeros = [
+
             int(x.strip())
+
             for x in numeros.split(",")
+
             if x.strip().isdigit()
         ]
 
@@ -576,12 +744,6 @@ elif menu == "📊 Timeline":
             use_container_width=True
         )
 
-    else:
-
-        st.warning(
-            "No existen señales registradas"
-        )
-
 # =========================
 # TESLA NODES
 # =========================
@@ -600,8 +762,7 @@ elif menu == "⚡ Tesla Nodes":
         x=np.arange(20),
         y=energia,
         size=energia,
-        color=energia,
-        title="Tesla Node Activity"
+        color=energia
     )
 
     fig.update_layout(
@@ -622,16 +783,19 @@ elif menu == "🛰️ Master Console":
     st.title("🛰️ Master Console")
 
     estados = {
+
         "Núcleo IA": "Activo",
         "Cartografía": "Sincronizada",
         "Clusters": "Detectados",
         "Timeline": "Operativo",
         "Predicción": "Estable",
         "Registro Universal": "Sincronizado",
-        "Motor Multi-Sorteo": "Activo"
+        "Convergencia": "Activa",
+        "Motor Multi-Sorteo": "Online"
     }
 
     for k,v in estados.items():
+
         st.success(f"{k}: {v}")
 
     st.divider()
@@ -639,8 +803,9 @@ elif menu == "🛰️ Master Console":
     st.code(f"""
 >>> SIGNALMAP IA CORE ACTIVE
 >>> GAME MODE: {sorteo}
->>> ANALYZING STRUCTURES
->>> SCANNING PATTERNS
->>> TESLA NODE ONLINE
->>> MULTI-LOTTERY ENGINE ACTIVE
+>>> CONVERGENCE ENGINE ONLINE
+>>> TESLA NODE ACTIVE
+>>> SIGNAL SCANNING
+>>> MIRROR SYSTEM READY
+>>> STRUCTURAL ANALYSIS ACTIVE
 """)
