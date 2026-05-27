@@ -1,5 +1,5 @@
 # =========================
-# SIGNALMAP IA - CORE ENGINE
+# SIGNALMAP IA - CORE ENGINE EVOLUTION
 # =========================
 
 import streamlit as st
@@ -9,7 +9,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 import random
-import math
+from collections import Counter
 
 # =========================
 # PAGE CONFIG
@@ -53,10 +53,53 @@ h1,h2,h3,h4 {
 """, unsafe_allow_html=True)
 
 # =========================
+# SESSION STATE
+# =========================
+
+if "registro_senales" not in st.session_state:
+    st.session_state.registro_senales = []
+
+# =========================
+# CONFIG SORTEOS
+# =========================
+
+GAME_CONFIG = {
+    "TRIS": {
+        "max": 9,
+        "cantidad": 5
+    },
+
+    "Melate": {
+        "max": 56,
+        "cantidad": 6
+    },
+
+    "Chispazo": {
+        "max": 28,
+        "cantidad": 5
+    },
+
+    "Powerball": {
+        "max": 69,
+        "cantidad": 5
+    },
+
+    "Gana Gato": {
+        "max": 9,
+        "cantidad": 8
+    }
+}
+
+# =========================
 # SIDEBAR
 # =========================
 
 st.sidebar.title("🧭 SignalMap IA")
+
+sorteo = st.sidebar.selectbox(
+    "🎲 Sorteo",
+    list(GAME_CONFIG.keys())
+)
 
 menu = st.sidebar.radio(
     "Navegación",
@@ -75,16 +118,22 @@ menu = st.sidebar.radio(
 )
 
 # =========================
-# GENERADOR BASE
+# GENERADOR UNIVERSAL
 # =========================
 
 def generar_datos():
 
-    numeros = np.random.randint(0, 10, 80)
+    max_num = GAME_CONFIG[sorteo]["max"]
+
+    numeros = np.random.randint(
+        0,
+        max_num + 1,
+        120
+    )
 
     timestamps = pd.date_range(
         start=datetime.now(),
-        periods=80,
+        periods=120,
         freq="min"
     )
 
@@ -105,15 +154,27 @@ if menu == "🏠 Dashboard":
 
     st.title("🧠 SignalMap IA")
 
-    st.markdown("""
-    ### Plataforma de análisis dinámico de patrones y señales.
+    st.markdown(f"""
+    ### Plataforma dinámica IA
+    ### Sorteo activo: {sorteo}
     """)
 
     col1, col2, col3 = st.columns(3)
 
-    col1.metric("Patrones", random.randint(10, 30))
-    col2.metric("Clusters", random.randint(2, 9))
-    col3.metric("Persistencia", f"{random.randint(60,95)}%")
+    col1.metric(
+        "Patrones",
+        random.randint(10, 30)
+    )
+
+    col2.metric(
+        "Clusters",
+        random.randint(2, 12)
+    )
+
+    col3.metric(
+        "Persistencia",
+        f"{random.randint(60,95)}%"
+    )
 
     st.divider()
 
@@ -123,11 +184,21 @@ if menu == "🏠 Dashboard":
         x=freq.index,
         y=freq.values,
         color=freq.values,
-        labels={"x":"Número", "y":"Frecuencia"},
+        labels={
+            "x":"Número",
+            "y":"Frecuencia"
+        },
         title="Frecuencia de Señales"
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    fig.update_layout(
+        template="plotly_dark"
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
 
 # =========================
 # AI INTERPRETATION
@@ -144,14 +215,14 @@ elif menu == "🧠 AI Interpretation":
     persistencia = frecuencia.max()
 
     sincronias = len(
-        frecuencia[frecuencia > 5]
+        frecuencia[frecuencia > 4]
     )
 
     st.markdown("## 🔍 Análisis IA")
 
     insights = []
 
-    if persistencia > 10:
+    if persistencia > 8:
         insights.append(
             f"⚡ Alta persistencia detectada en nodo {dominante}"
         )
@@ -166,9 +237,21 @@ elif menu == "🧠 AI Interpretation":
             "📡 Predominio estructural par"
         )
 
-    if dominante > 5:
+    else:
         insights.append(
-            "🔥 Tendencia ascendente observada"
+            "🌗 Predominio estructural impar"
+        )
+
+    if dominante > (
+        GAME_CONFIG[sorteo]["max"] / 2
+    ):
+        insights.append(
+            "🔥 Zona alta dominante"
+        )
+
+    else:
+        insights.append(
+            "🌊 Zona baja dominante"
         )
 
     for i in insights:
@@ -198,13 +281,18 @@ elif menu == "🪐 Constellation Map":
             mode='markers+lines',
             marker=dict(
                 size=14,
-                color=np.random.randint(0,10,40),
+                color=np.random.randint(
+                    0,
+                    GAME_CONFIG[sorteo]["max"],
+                    40
+                ),
                 colorscale='Plasma'
             ),
-            line=dict(
-                width=1
-            ),
-            text=[f"Nodo {i}" for i in range(40)]
+            line=dict(width=1),
+            text=[
+                f"Nodo {i}"
+                for i in range(40)
+            ]
         )
     )
 
@@ -213,10 +301,13 @@ elif menu == "🪐 Constellation Map":
         height=700
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
 
 # =========================
-# PATTERN EVOLUTION
+# EVOLUTION
 # =========================
 
 elif menu == "📈 Pattern Evolution":
@@ -240,68 +331,50 @@ elif menu == "📈 Pattern Evolution":
         template="plotly_dark"
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
 
 # =========================
-# PREDICCION
+# PREDICCION NUMERICA
 # =========================
 
 elif menu == "🎲 Predicción Numérica":
 
     st.title("🎲 Predicción Numérica")
 
-    # =====================================================
-    # GENERACION DE DATOS POSICIONALES
-    # =====================================================
+    cantidad = GAME_CONFIG[sorteo]["cantidad"]
+    maximo = GAME_CONFIG[sorteo]["max"]
 
-    historial = pd.DataFrame({
-        "P1": np.random.randint(1, 50, 120),
-        "P2": np.random.randint(1, 50, 120),
-        "P3": np.random.randint(1, 50, 120),
-        "P4": np.random.randint(1, 50, 120),
-        "P5": np.random.randint(1, 50, 120),
-        "PW": np.random.randint(1, 20, 120)
-    })
+    historial = pd.DataFrame()
+
+    for i in range(cantidad):
+
+        historial[f"P{i+1}"] = np.random.randint(
+            0,
+            maximo + 1,
+            150
+        )
 
     st.markdown("""
-    ## 🧠 Motor de análisis estructural activo
+    ## 🧠 Motor estructural activo
     """)
-
-    # =====================================================
-    # EXTRACCION POR POSICIONES
-    # =====================================================
-
-    from collections import Counter
-
-    position_stats = {
-        "Casilla 1": historial["P1"].tolist(),
-        "Casilla 2": historial["P2"].tolist(),
-        "Casilla 3": historial["P3"].tolist(),
-        "Casilla 4": historial["P4"].tolist(),
-        "Casilla 5": historial["P5"].tolist(),
-        "PW / Extra": historial["PW"].tolist()
-    }
-
-    # =====================================================
-    # TABLA PRINCIPAL
-    # =====================================================
-
-    st.markdown("## 📊 Historial estructural")
 
     st.dataframe(
         historial,
         use_container_width=True
     )
 
-    # =====================================================
-    # FRECUENCIA DOMINANTE
-    # =====================================================
-
-    st.markdown("## 🔥 Frecuencia dominante por posición")
+    # =========================
+    # ANALISIS
+    # =========================
 
     resumen = []
 
-    for nombre, numeros in position_stats.items():
+    for columna in historial.columns:
+
+        numeros = historial[columna].tolist()
 
         contador = Counter(numeros)
 
@@ -310,202 +383,82 @@ elif menu == "🎲 Predicción Numérica":
         frecuencia = contador.most_common(1)[0][1]
 
         resumen.append({
-            "Posición": nombre,
-            "Número dominante": dominante,
+            "Posición": columna,
+            "Dominante": dominante,
             "Frecuencia": frecuencia
         })
 
     resumen_df = pd.DataFrame(resumen)
+
+    st.markdown("## 🔥 Dominancia estructural")
 
     st.dataframe(
         resumen_df,
         use_container_width=True
     )
 
-    # =====================================================
-    # ANALISIS IA
-    # =====================================================
+    # =========================
+    # IA INTERPRETATIVA
+    # =========================
 
-    st.markdown("## 🤖 Clasificación IA")
+    st.markdown("## 🤖 Interpretación IA")
 
-    comportamiento = []
+    for columna in historial.columns:
 
-    for nombre, numeros in position_stats.items():
-
-        total = len(numeros)
-
-        unicos = len(set(numeros))
-
-        repeticion = round(
-            (1 - (unicos / total)) * 100,
-            2
-        )
-
-        if repeticion >= 70:
-            estado = "🔥 Muy repetitiva"
-
-        elif repeticion >= 50:
-            estado = "📌 Estable"
-
-        elif repeticion >= 30:
-            estado = "⚖️ Balanceada"
-
-        else:
-            estado = "🌪️ Caótica"
-
-        comportamiento.append({
-            "Posición": nombre,
-            "Repetición": f"{repeticion}%",
-            "Estado IA": estado
-        })
-
-    comportamiento_df = pd.DataFrame(
-        comportamiento
-    )
-
-    st.dataframe(
-        comportamiento_df,
-        use_container_width=True
-    )
-
-    # =====================================================
-    # RANGOS DOMINANTES
-    # =====================================================
-
-    st.markdown("## 📈 Rangos dominantes")
-
-    rangos = []
-
-    for nombre, numeros in position_stats.items():
-
-        bajos = len([
-            n for n in numeros
-            if n <= 10
-        ])
-
-        medios = len([
-            n for n in numeros
-            if 11 <= n <= 30
-        ])
-
-        altos = len([
-            n for n in numeros
-            if n > 30
-        ])
-
-        total = len(numeros)
-
-        rangos.append({
-            "Posición": nombre,
-            "1-10": round((bajos/total)*100,2),
-            "11-30": round((medios/total)*100,2),
-            "31+": round((altos/total)*100,2)
-        })
-
-    rangos_df = pd.DataFrame(rangos)
-
-    st.dataframe(
-        rangos_df,
-        use_container_width=True
-    )
-
-    # =====================================================
-    # MAPA DE CALOR
-    # =====================================================
-
-    st.markdown("## 🌡️ Heatmap estructural")
-
-    heatmap_data = {}
-
-    for nombre, numeros in position_stats.items():
-
-        contador = Counter(numeros)
-
-        heatmap_data[nombre] = contador
-
-    heatmap_df = pd.DataFrame(
-        heatmap_data
-    ).fillna(0)
-
-    fig_heat = px.imshow(
-        heatmap_df,
-        aspect="auto",
-        text_auto=True,
-        color_continuous_scale="Plasma"
-    )
-
-    fig_heat.update_layout(
-        template="plotly_dark",
-        height=700
-    )
-
-    st.plotly_chart(
-        fig_heat,
-        use_container_width=True
-    )
-
-    # =====================================================
-    # TENDENCIA RECIENTE
-    # =====================================================
-
-    st.markdown("## 📡 Tendencias recientes")
-
-    tendencias = []
-
-    for nombre, numeros in position_stats.items():
-
-        recientes = numeros[-20:]
+        numeros = historial[columna].tolist()
 
         promedio = round(
-            np.mean(recientes),
+            np.mean(numeros),
             2
         )
 
-        tendencias.append({
-            "Posición": nombre,
-            "Promedio reciente": promedio,
-            "Últimos analizados": 20
-        })
+        repetidos = len(numeros) - len(set(numeros))
 
-    tendencias_df = pd.DataFrame(
-        tendencias
-    )
+        if repetidos > 80:
+            st.success(
+                f"{columna}: Alta persistencia estructural"
+            )
 
-    st.dataframe(
-        tendencias_df,
-        use_container_width=True
-    )
+        if promedio > (maximo / 2):
+            st.info(
+                f"{columna}: Tendencia alta dominante"
+            )
 
-    # =====================================================
-    # PREDICCION IA
-    # =====================================================
+        else:
+            st.warning(
+                f"{columna}: Tendencia baja dominante"
+            )
 
-    st.markdown("## 🔮 Predicción IA estructural")
+    # =========================
+    # PREDICCION
+    # =========================
 
-    prediccion = []
+    st.markdown("## 🔮 Predicción IA")
 
-    for nombre, numeros in position_stats.items():
+    predicciones = []
+
+    for columna in historial.columns:
+
+        numeros = historial[columna].tolist()
 
         contador = Counter(numeros)
 
         top = contador.most_common(3)
 
-        prediccion.append({
-            "Posición": nombre,
+        predicciones.append({
+            "Posición": columna,
             "Top 1": top[0][0],
             "Top 2": top[1][0],
             "Top 3": top[2][0]
         })
 
-    pred_df = pd.DataFrame(prediccion)
+    pred_df = pd.DataFrame(
+        predicciones
+    )
 
     st.dataframe(
         pred_df,
         use_container_width=True
-    )
-
-    st.success(
-        "⚡ Motor estructural posicional sincronizado"
     )
 
 # =========================
@@ -519,7 +472,11 @@ elif menu == "🗺️ Cartography Layer":
     mapa = pd.DataFrame({
         "x": np.random.randn(120),
         "y": np.random.randn(120),
-        "intensidad": np.random.randint(1,100,120)
+        "intensidad": np.random.randint(
+            1,
+            500,
+            120
+        )
     })
 
     fig = px.density_heatmap(
@@ -536,7 +493,10 @@ elif menu == "🗺️ Cartography Layer":
         height=700
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
 
 # =========================
 # DIARIO
@@ -546,20 +506,56 @@ elif menu == "📖 Diario de Señales":
 
     st.title("📖 Diario de Señales")
 
+    st.markdown(f"""
+    ### Registro universal activo
+    ### Sorteo actual: {sorteo}
+    """)
+
+    numeros = st.text_input(
+        "Introduce números separados por coma"
+    )
+
     nota = st.text_area(
-        "Registrar señal"
+        "Interpretación / señal"
     )
 
     if st.button("Guardar señal"):
 
-        st.success(
-            "Señal registrada correctamente"
+        lista_numeros = [
+            int(x.strip())
+            for x in numeros.split(",")
+            if x.strip().isdigit()
+        ]
+
+        registro = {
+            "timestamp": str(datetime.now()),
+            "sorteo": sorteo,
+            "numeros": lista_numeros,
+            "nota": nota
+        }
+
+        st.session_state.registro_senales.append(
+            registro
         )
 
-        st.write({
-            "timestamp": str(datetime.now()),
-            "nota": nota
-        })
+        st.success(
+            "⚡ Señal registrada correctamente"
+        )
+
+    st.divider()
+
+    st.markdown("## 📚 Historial")
+
+    if st.session_state.registro_senales:
+
+        historial_df = pd.DataFrame(
+            st.session_state.registro_senales
+        )
+
+        st.dataframe(
+            historial_df,
+            use_container_width=True
+        )
 
 # =========================
 # TIMELINE
@@ -569,22 +565,22 @@ elif menu == "📊 Timeline":
 
     st.title("📊 Timeline")
 
-    timeline = pd.DataFrame({
-        "timestamp": pd.date_range(
-            start=datetime.now(),
-            periods=20,
-            freq="h"
-        ),
-        "evento": [
-            f"Evento {i}"
-            for i in range(20)
-        ]
-    })
+    if st.session_state.registro_senales:
 
-    st.dataframe(
-        timeline,
-        use_container_width=True
-    )
+        timeline_df = pd.DataFrame(
+            st.session_state.registro_senales
+        )
+
+        st.dataframe(
+            timeline_df,
+            use_container_width=True
+        )
+
+    else:
+
+        st.warning(
+            "No existen señales registradas"
+        )
 
 # =========================
 # TESLA NODES
@@ -612,7 +608,10 @@ elif menu == "⚡ Tesla Nodes":
         template="plotly_dark"
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(
+        fig,
+        use_container_width=True
+    )
 
 # =========================
 # MASTER CONSOLE
@@ -622,16 +621,14 @@ elif menu == "🛰️ Master Console":
 
     st.title("🛰️ Master Console")
 
-    st.markdown("""
-    ## Estado del Sistema
-    """)
-
     estados = {
         "Núcleo IA": "Activo",
         "Cartografía": "Sincronizada",
         "Clusters": "Detectados",
         "Timeline": "Operativo",
-        "Predicción": "Estable"
+        "Predicción": "Estable",
+        "Registro Universal": "Sincronizado",
+        "Motor Multi-Sorteo": "Activo"
     }
 
     for k,v in estados.items():
@@ -639,10 +636,11 @@ elif menu == "🛰️ Master Console":
 
     st.divider()
 
-    st.code("""
+    st.code(f"""
 >>> SIGNALMAP IA CORE ACTIVE
->>> SCANNING STRUCTURES
->>> ANALYZING PATTERNS
->>> GENERATING CONSTELLATIONS
+>>> GAME MODE: {sorteo}
+>>> ANALYZING STRUCTURES
+>>> SCANNING PATTERNS
 >>> TESLA NODE ONLINE
-    """)
+>>> MULTI-LOTTERY ENGINE ACTIVE
+""")
