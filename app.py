@@ -12,6 +12,8 @@ from datetime import datetime
 import random
 import json
 
+```python
+```python
 # =========================
 # FIREBASE
 # =========================
@@ -20,13 +22,19 @@ import pyrebase
 
 firebase_config = {
 
-    "apiKey": "TU_API_KEY",
-    "authDomain": "TU_PROYECTO.firebaseapp.com",
-    "databaseURL": "https://TU_PROYECTO-default-rtdb.firebaseio.com/",
-    "projectId": "TU_PROYECTO",
-    "storageBucket": "TU_PROYECTO.appspot.com",
-    "messagingSenderId": "XXXX",
-    "appId": "XXXX"
+    "apiKey": "AIzaSyBXZgwW6UFwWtzFx1fVD32Dy1z6itBaYVk",
+
+    "authDomain": "signalmap-ia.firebaseapp.com",
+
+    "databaseURL": "https://signalmap-ia-default-rtdb.firebaseio.com/",
+
+    "projectId": "signalmap-ia",
+
+    "storageBucket": "signalmap-ia.firebasestorage.app",
+
+    "messagingSenderId": "967824400239",
+
+    "appId": "1:967824400239:web:bc30c8b4eb9610b3aed29a"
 }
 
 firebase = pyrebase.initialize_app(
@@ -36,6 +44,9 @@ firebase = pyrebase.initialize_app(
 auth = firebase.auth()
 
 db = firebase.database()
+```
+
+
 
 # =========================
 # PAGE CONFIG
