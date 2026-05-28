@@ -7,8 +7,4 @@ easyocr
 pillow
 firebase-admin
 streamlit-authenticator
-streamlit
-pandas
-numpy
-plotly
 pyrebase4
