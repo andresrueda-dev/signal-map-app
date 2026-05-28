@@ -1,5 +1,5 @@
 # =========================
-# SIGNALMAP IA - AI CONVERGENCE PLATFORM
+# SIGNALMAP IA - FIREBASE AI PLATFORM
 # =========================
 
 import streamlit as st
@@ -7,9 +7,35 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from datetime import datetime
 from collections import Counter
+from datetime import datetime
 import random
+import json
+
+# =========================
+# FIREBASE
+# =========================
+
+import pyrebase
+
+firebase_config = {
+
+    "apiKey": "TU_API_KEY",
+    "authDomain": "TU_PROYECTO.firebaseapp.com",
+    "databaseURL": "https://TU_PROYECTO-default-rtdb.firebaseio.com/",
+    "projectId": "TU_PROYECTO",
+    "storageBucket": "TU_PROYECTO.appspot.com",
+    "messagingSenderId": "XXXX",
+    "appId": "XXXX"
+}
+
+firebase = pyrebase.initialize_app(
+    firebase_config
+)
+
+auth = firebase.auth()
+
+db = firebase.database()
 
 # =========================
 # PAGE CONFIG
@@ -37,10 +63,6 @@ h1,h2,h3,h4,h5 {
     color: white;
 }
 
-.sidebar .sidebar-content {
-    background-color: #0f172a;
-}
-
 .stButton>button {
     background-color: #7c3aed;
     color: white;
@@ -55,48 +77,98 @@ h1,h2,h3,h4,h5 {
     border-radius: 14px;
 }
 
-.slider-container {
-    display: flex;
-    overflow-x: auto;
-    gap: 12px;
-    padding: 10px 0px;
-}
-
-.slider-card {
-    min-width: 220px;
-    background-color: #111827;
-    border-radius: 14px;
-    padding: 14px;
-    border: 1px solid #1f2937;
-    text-align: center;
-}
-
-.slider-critical {
-    border: 1px solid #ef4444;
-    box-shadow: 0px 0px 14px #ef4444;
-}
-
-.slider-hot {
-    border: 1px solid #06b6d4;
-    box-shadow: 0px 0px 10px #06b6d4;
-}
-
-.interpret-box {
+.dashboard-card {
     background-color: #111827;
     padding: 16px;
-    border-radius: 14px;
-    margin-bottom: 12px;
+    border-radius: 16px;
+    border: 1px solid #1f2937;
+    margin-bottom: 10px;
+}
+
+.card-critical {
+    border: 1px solid #ef4444;
+    box-shadow: 0px 0px 12px #ef4444;
+}
+
+.card-hot {
+    border: 1px solid #06b6d4;
+    box-shadow: 0px 0px 10px #06b6d4;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
 # =========================
-# SESSION STATE
+# LOGIN
 # =========================
 
-if "registro_senales" not in st.session_state:
-    st.session_state.registro_senales = []
+if "user" not in st.session_state:
+    st.session_state.user = None
+
+if st.session_state.user is None:
+
+    st.title("🧠 SignalMap IA")
+
+    st.markdown("""
+    ## 🔐 Login Firebase
+    """)
+
+    email = st.text_input("Correo")
+
+    password = st.text_input(
+        "Contraseña",
+        type="password"
+    )
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        if st.button("Iniciar Sesión"):
+
+            try:
+
+                user = auth.sign_in_with_email_and_password(
+                    email,
+                    password
+                )
+
+                st.session_state.user = user
+
+                st.success(
+                    "Sesión iniciada"
+                )
+
+                st.rerun()
+
+            except:
+
+                st.error(
+                    "Error al iniciar sesión"
+                )
+
+    with col2:
+
+        if st.button("Crear Cuenta"):
+
+            try:
+
+                auth.create_user_with_email_and_password(
+                    email,
+                    password
+                )
+
+                st.success(
+                    "Cuenta creada"
+                )
+
+            except:
+
+                st.error(
+                    "No se pudo crear cuenta"
+                )
+
+    st.stop()
 
 # =========================
 # CONFIG
@@ -153,12 +225,12 @@ def generar_datos(game):
     numeros = np.random.randint(
         minimo,
         maximo + 1,
-        160
+        180
     )
 
     timestamps = pd.date_range(
         start=datetime.now(),
-        periods=160,
+        periods=180,
         freq="min"
     )
 
@@ -182,11 +254,9 @@ def espejo(numero):
         "9":"4"
     }
 
-    texto = str(numero)
-
     resultado = ""
 
-    for d in texto:
+    for d in str(numero):
 
         if d in mapa:
             resultado += mapa[d]
@@ -208,23 +278,22 @@ def calcular_convergencia(
     )
 
     if score >= 120:
-        return "🔥 CRÍTICA", score
+        return "⚡ Crítica", "🔥"
 
     elif score >= 80:
-        return "⚡ ALTA", score
+        return "Alta", "⚡"
 
     elif score >= 40:
-        return "📡 MEDIA", score
+        return "Media", "📡"
 
     else:
-        return "🌊 BAJA", score
+        return "Baja", "🌊"
 
-def generar_interpretacion(
+def interpretacion_ia(
     dominante,
     persistencia,
     sincronias,
-    game,
-    score
+    convergencia
 ):
 
     mensajes = []
@@ -232,43 +301,37 @@ def generar_interpretacion(
     if persistencia >= 10:
 
         mensajes.append(
-            f"⚡ Persistencia fuerte detectada en {game}"
+            "Persistencia elevada detectada"
         )
 
     if sincronias >= 5:
 
         mensajes.append(
-            f"🪐 Sincronías múltiples activas"
+            "Sincronías múltiples activas"
         )
 
     if dominante % 2 == 0:
 
         mensajes.append(
-            "📡 Predominio estructural par"
+            "Predominio estructural par"
         )
 
     else:
 
         mensajes.append(
-            "🌗 Predominio estructural impar"
+            "Predominio estructural impar"
         )
 
-    if score >= 120:
+    if convergencia == "Crítica":
 
         mensajes.append(
-            "🔥 Ventana crítica detectada"
+            "Ventana crítica activa"
         )
 
-    elif score >= 80:
+    elif convergencia == "Alta":
 
         mensajes.append(
-            "⚡ Zona caliente activa"
-        )
-
-    else:
-
-        mensajes.append(
-            "🌊 Comportamiento estable"
+            "Zona caliente detectada"
         )
 
     return mensajes
@@ -288,9 +351,6 @@ menu = st.sidebar.radio(
         "🪞 Motor Espejo",
         "📖 Diario de Señales",
         "📊 Timeline",
-        "⚡ Tesla Nodes",
-        "🗺️ Cartography Layer",
-        "🪐 Constellation Map",
         "🛰️ Master Console"
     ]
 )
@@ -304,12 +364,14 @@ if menu == "🏠 Dashboard Global":
     st.title("🧠 SignalMap IA")
 
     st.markdown("""
-    ## 🌐 Centro de convergencia multi-sorteo
+    ## 🌐 MATRIZ GLOBAL DE CONVERGENCIA
     """)
 
-    cards_html = '<div class="slider-container">'
-
     resultados = []
+
+    cols = st.columns(2)
+
+    contador_col = 0
 
     for game in GAME_CONFIG.keys():
 
@@ -317,82 +379,86 @@ if menu == "🏠 Dashboard Global":
 
         freq = df["numero"].value_counts()
 
-        dominante = freq.idxmax()
+        dominante = int(freq.idxmax())
 
-        persistencia = freq.max()
+        persistencia = int(freq.max())
 
-        sincronias = len(
-            freq[freq > 5]
+        sincronias = int(
+            len(freq[freq > 5])
         )
 
-        convergencia, score = calcular_convergencia(
+        convergencia, icono = calcular_convergencia(
             persistencia,
             sincronias
         )
 
-        if score >= 120:
-            clase = "slider-critical"
-
-        elif score >= 80:
-            clase = "slider-hot"
-
-        else:
-            clase = ""
-
-        cards_html += f"""
-        <div class="slider-card {clase}">
-            <h4>{game}</h4>
-            <p>{convergencia}</p>
-            <small>
-            Nodo dominante: {dominante}
-            </small>
-        </div>
-        """
-
         resultados.append({
+
             "Sorteo": game,
-            "Dominante": dominante,
-            "Persistencia": persistencia,
-            "Sincronías": sincronias,
+
+            "Estado": icono,
+
             "Convergencia": convergencia,
-            "Score": score
+
+            "Dominante": dominante
         })
 
-    cards_html += "</div>"
+        mensajes = interpretacion_ia(
+            dominante,
+            persistencia,
+            sincronias,
+            convergencia
+        )
 
-    st.markdown(
-        cards_html,
-        unsafe_allow_html=True
-    )
+        with cols[contador_col]:
+
+            st.markdown(f"""
+            <div class="dashboard-card">
+            <h3>{icono} {game}</h3>
+            <p><b>Convergencia:</b> {convergencia}</p>
+            <p><b>Dominante:</b> {dominante}</p>
+            <p><b>Persistencia:</b> {persistencia}</p>
+            <p><b>Sincronías:</b> {sincronias}</p>
+            </div>
+            """, unsafe_allow_html=True)
+
+            for m in mensajes:
+
+                st.write(f"• {m}")
+
+            fig = px.bar(
+                x=freq.index,
+                y=freq.values,
+                color=freq.values
+            )
+
+            fig.update_layout(
+                template="plotly_dark",
+                height=250
+            )
+
+            st.plotly_chart(
+                fig,
+                use_container_width=True
+            )
+
+        contador_col += 1
+
+        if contador_col > 1:
+            contador_col = 0
 
     st.divider()
 
-    dashboard_df = pd.DataFrame(
+    st.markdown("""
+    ## 📊 MATRIZ GLOBAL
+    """)
+
+    tabla_df = pd.DataFrame(
         resultados
     )
 
     st.dataframe(
-        dashboard_df,
-        use_container_width=True
-    )
-
-    st.markdown("""
-    ## 🔥 Ranking IA
-    """)
-
-    fig_rank = px.bar(
-        dashboard_df,
-        x="Sorteo",
-        y="Score",
-        color="Score"
-    )
-
-    fig_rank.update_layout(
-        template="plotly_dark"
-    )
-
-    st.plotly_chart(
-        fig_rank,
+        tabla_df,
         use_container_width=True
     )
 
@@ -410,27 +476,38 @@ elif menu == "🎯 Sorteo Número Sugerido":
         ## 🎲 {game}
         """)
 
+        registros = db.child(
+            "signals"
+        ).child(
+            st.session_state.user["localId"]
+        ).child(
+            game
+        ).get()
+
         todos = []
 
-        if st.session_state.registro_senales:
+        if registros.each():
 
-            for registro in st.session_state.registro_senales:
+            for r in registros.each():
 
-                if registro["sorteo"] == game:
+                data = r.val()
+
+                if "numeros" in data:
 
                     todos.extend(
-                        registro["numeros"]
+                        data["numeros"]
                     )
 
         if len(todos) == 0:
 
             minimo = GAME_CONFIG[game]["min"]
+
             maximo = GAME_CONFIG[game]["max"]
 
             todos = list(np.random.randint(
                 minimo,
                 maximo + 1,
-                100
+                120
             ))
 
         contador = Counter(todos)
@@ -457,30 +534,6 @@ elif menu == "🎯 Sorteo Número Sugerido":
             f"🪞 Dualidad: {espejo_combo}"
         )
 
-        heat_df = pd.DataFrame(
-            contador.most_common(10),
-            columns=[
-                "Numero",
-                "Frecuencia"
-            ]
-        )
-
-        fig_heat = px.bar(
-            heat_df,
-            x="Numero",
-            y="Frecuencia",
-            color="Frecuencia"
-        )
-
-        fig_heat.update_layout(
-            template="plotly_dark"
-        )
-
-        st.plotly_chart(
-            fig_heat,
-            use_container_width=True
-        )
-
 # =========================
 # AI INTERPRETATION
 # =========================
@@ -499,40 +552,33 @@ elif menu == "🧠 AI Interpretation":
 
         freq = df["numero"].value_counts()
 
-        dominante = freq.idxmax()
+        dominante = int(freq.idxmax())
 
-        persistencia = freq.max()
+        persistencia = int(freq.max())
 
-        sincronias = len(
-            freq[freq > 5]
+        sincronias = int(
+            len(freq[freq > 5])
         )
 
-        convergencia, score = calcular_convergencia(
+        convergencia, icono = calcular_convergencia(
             persistencia,
             sincronias
         )
 
-        mensajes = generar_interpretacion(
+        mensajes = interpretacion_ia(
             dominante,
             persistencia,
             sincronias,
-            game,
-            score
+            convergencia
         )
 
-        st.markdown(
-            '<div class="interpret-box">',
-            unsafe_allow_html=True
-        )
+        st.markdown(f"""
+        ### {icono} {convergencia}
+        """)
 
         for m in mensajes:
 
-            st.write(m)
-
-        st.markdown(
-            '</div>',
-            unsafe_allow_html=True
-        )
+            st.write(f"• {m}")
 
 # =========================
 # MOTOR ESPEJO
@@ -572,7 +618,7 @@ elif menu == "📖 Diario de Señales":
     )
 
     nota = st.text_area(
-        "Interpretación / señal"
+        "Interpretación"
     )
 
     nivel = st.select_slider(
@@ -582,17 +628,6 @@ elif menu == "📖 Diario de Señales":
             "📡 Media",
             "⚡ Alta",
             "🔥 Crítica"
-        ]
-    )
-
-    categoria = st.selectbox(
-        "Categoría",
-        [
-            "Persistencia",
-            "Convergencia",
-            "Nodo caliente",
-            "Dualidad",
-            "Patrón repetitivo"
         ]
     )
 
@@ -611,36 +646,25 @@ elif menu == "📖 Diario de Señales":
 
             "timestamp": str(datetime.now()),
 
-            "sorteo": sorteo,
-
             "numeros": lista_numeros,
 
             "nota": nota,
 
-            "nivel": nivel,
-
-            "categoria": categoria
+            "nivel": nivel
         }
 
-        st.session_state.registro_senales.append(
+        db.child(
+            "signals"
+        ).child(
+            st.session_state.user["localId"]
+        ).child(
+            sorteo
+        ).push(
             registro
         )
 
         st.success(
-            "⚡ Señal registrada"
-        )
-
-    st.divider()
-
-    if st.session_state.registro_senales:
-
-        historial_df = pd.DataFrame(
-            st.session_state.registro_senales
-        )
-
-        st.dataframe(
-            historial_df,
-            use_container_width=True
+            "⚡ Señal guardada en Firebase"
         )
 
 # =========================
@@ -651,140 +675,38 @@ elif menu == "📊 Timeline":
 
     st.title("📊 Timeline")
 
-    if st.session_state.registro_senales:
+    timeline = []
+
+    for game in GAME_CONFIG.keys():
+
+        registros = db.child(
+            "signals"
+        ).child(
+            st.session_state.user["localId"]
+        ).child(
+            game
+        ).get()
+
+        if registros.each():
+
+            for r in registros.each():
+
+                data = r.val()
+
+                data["sorteo"] = game
+
+                timeline.append(data)
+
+    if len(timeline) > 0:
 
         timeline_df = pd.DataFrame(
-            st.session_state.registro_senales
+            timeline
         )
 
         st.dataframe(
             timeline_df,
             use_container_width=True
         )
-
-        if "nivel" in timeline_df.columns:
-
-            conteo = timeline_df[
-                "nivel"
-            ].value_counts()
-
-            fig = px.pie(
-                values=conteo.values,
-                names=conteo.index
-            )
-
-            fig.update_layout(
-                template="plotly_dark"
-            )
-
-            st.plotly_chart(
-                fig,
-                use_container_width=True
-            )
-
-# =========================
-# TESLA NODES
-# =========================
-
-elif menu == "⚡ Tesla Nodes":
-
-    st.title("⚡ Tesla Nodes")
-
-    energia = np.random.randint(
-        0,
-        100,
-        20
-    )
-
-    fig = px.scatter(
-        x=np.arange(20),
-        y=energia,
-        size=energia,
-        color=energia
-    )
-
-    fig.update_layout(
-        template="plotly_dark"
-    )
-
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
-
-# =========================
-# CARTOGRAPHY
-# =========================
-
-elif menu == "🗺️ Cartography Layer":
-
-    st.title("🗺️ Cartography Layer")
-
-    mapa = pd.DataFrame({
-        "x": np.random.randn(120),
-        "y": np.random.randn(120),
-        "intensidad": np.random.randint(
-            1,
-            500,
-            120
-        )
-    })
-
-    fig = px.density_heatmap(
-        mapa,
-        x="x",
-        y="y",
-        z="intensidad"
-    )
-
-    fig.update_layout(
-        template="plotly_dark"
-    )
-
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
-
-# =========================
-# CONSTELLATION
-# =========================
-
-elif menu == "🪐 Constellation Map":
-
-    st.title("🪐 Constellation Map")
-
-    x = np.random.randn(40)
-    y = np.random.randn(40)
-
-    fig = go.Figure()
-
-    fig.add_trace(
-        go.Scatter(
-            x=x,
-            y=y,
-            mode='markers+lines',
-            marker=dict(
-                size=14,
-                color=np.random.randint(
-                    0,
-                    100,
-                    40
-                ),
-                colorscale='Plasma'
-            )
-        )
-    )
-
-    fig.update_layout(
-        template="plotly_dark",
-        height=700
-    )
-
-    st.plotly_chart(
-        fig,
-        use_container_width=True
-    )
 
 # =========================
 # MASTER CONSOLE
@@ -796,12 +718,11 @@ elif menu == "🛰️ Master Console":
 
     estados = {
 
-        "Núcleo IA": "Activo",
+        "Firebase": "Activo",
         "Convergencia": "Operativa",
-        "Timeline": "Activo",
-        "Tesla Nodes": "Sincronizados",
+        "AI Interpretation": "Online",
         "Motor Espejo": "Disponible",
-        "AI Interpretation": "Online"
+        "Timeline": "Sincronizado"
     }
 
     for k,v in estados.items():
@@ -814,9 +735,9 @@ elif menu == "🛰️ Master Console":
 
     st.code("""
 >>> SIGNALMAP IA ACTIVE
+>>> FIREBASE CONNECTED
 >>> AI CONVERGENCE ONLINE
 >>> MULTI-LOTTERY MODE ACTIVE
->>> STRUCTURAL ANALYSIS READY
+>>> GLOBAL MATRIX READY
 >>> MIRROR ENGINE STANDBY
->>> TESLA NODE ONLINE
 """)
