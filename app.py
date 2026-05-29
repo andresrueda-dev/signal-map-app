@@ -19,28 +19,17 @@ import json
 import pyrebase
 
 firebase_config = {
-
     "apiKey": "AIzaSyBXZgwW6UFwWtzFx1fVD32Dy1z6itBaYVk",
-
     "authDomain": "signalmap-ia.firebaseapp.com",
-
     "databaseURL": "https://signalmap-ia-default-rtdb.firebaseio.com/",
-
     "projectId": "signalmap-ia",
-
     "storageBucket": "signalmap-ia.firebasestorage.app",
-
     "messagingSenderId": "967824400239",
-
     "appId": "1:967824400239:web:bc30c8b4eb9610b3aed29a"
 }
 
-firebase = pyrebase.initialize_app(
-    firebase_config
-)
-
+firebase = pyrebase.initialize_app(firebase_config)
 auth = firebase.auth()
-
 db = firebase.database()
 
 # =========================
@@ -59,16 +48,13 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-
 html, body, [class*="css"] {
     background-color: #020617;
     color: white;
 }
-
 h1,h2,h3,h4,h5 {
     color: white;
 }
-
 .stButton>button {
     background-color: #7c3aed;
     color: white;
@@ -76,13 +62,11 @@ h1,h2,h3,h4,h5 {
     border: none;
     padding: 10px;
 }
-
 .stMetric {
     background-color: #111827;
     padding: 12px;
     border-radius: 14px;
 }
-
 .dashboard-card {
     background-color: #111827;
     padding: 16px;
@@ -90,17 +74,14 @@ h1,h2,h3,h4,h5 {
     border: 1px solid #1f2937;
     margin-bottom: 10px;
 }
-
 .card-critical {
     border: 1px solid #ef4444;
     box-shadow: 0px 0px 12px #ef4444;
 }
-
 .card-hot {
     border: 1px solid #06b6d4;
     box-shadow: 0px 0px 10px #06b6d4;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -119,60 +100,39 @@ if st.session_state.user is None:
     ## 🔐 Login Firebase
     """)
 
-    email = st.text_input("Correo")
-
-    password = st.text_input(
-        "Contraseña",
-        type="password"
-    )
+    # Usamos claves únicas y limpiamos valores de entrada para evitar conflictos
+    email_input = st.text_input("Correo", key="login_email").strip()
+    password_input = st.text_input("Contraseña", type="password", key="login_pass").strip()
 
     col1, col2 = st.columns(2)
 
     with col1:
-
         if st.button("Iniciar Sesión"):
-
-            try:
-
-                user = auth.sign_in_with_email_and_password(
-                    email,
-                    password
-                )
-
-                st.session_state.user = user
-
-                st.success(
-                    "Sesión iniciada"
-                )
-
-                st.rerun()
-
-            except:
-
-                st.error(
-                    "Error al iniciar sesión"
-                )
+            if email_input and password_input:
+                try:
+                    user = auth.sign_in_with_email_and_password(email_input, password_input)
+                    st.session_state.user = user
+                    st.success("Sesión iniciada con éxito")
+                    st.rerun()
+                except Exception as e:
+                    st.error("Error al iniciar sesión: Verifica tus credenciales")
+            else:
+                st.warning("Por favor, llena ambos campos para iniciar sesión.")
 
     with col2:
-
         if st.button("Crear Cuenta"):
-
-            try:
-
-                auth.create_user_with_email_and_password(
-                    email,
-                    password
-                )
-
-                st.success(
-                    "Cuenta creada"
-                )
-
-            except:
-
-                st.error(
-                    "No se pudo crear cuenta"
-                )
+            if email_input and password_input:
+                try:
+                    # Firebase requiere contraseñas de mínimo 6 caracteres
+                    if len(password_input) < 6:
+                        st.error("La contraseña debe tener al menos 6 caracteres.")
+                    else:
+                        user = auth.create_user_with_email_and_password(email_input, password_input)
+                        st.success("Cuenta creada con éxito. ¡Ya puedes iniciar sesión!")
+                except Exception as e:
+                    st.error("No se pudo crear la cuenta. Es posible que el correo ya esté registrado o tenga un formato inválido.")
+            else:
+                st.warning("Por favor, llena ambos campos para registrarte.")
 
     st.stop()
 
@@ -181,42 +141,12 @@ if st.session_state.user is None:
 # =========================
 
 GAME_CONFIG = {
-
-    "TRIS": {
-        "min": 0,
-        "max": 9,
-        "cantidad": 5
-    },
-
-    "Melate": {
-        "min": 1,
-        "max": 56,
-        "cantidad": 6
-    },
-
-    "Chispazo": {
-        "min": 1,
-        "max": 28,
-        "cantidad": 5
-    },
-
-    "Powerball": {
-        "min": 1,
-        "max": 69,
-        "cantidad": 5
-    },
-
-    "Mega Millions": {
-        "min": 1,
-        "max": 70,
-        "cantidad": 5
-    },
-
-    "Gana Gato": {
-        "min": 1,
-        "max": 5,
-        "cantidad": 8
-    }
+    "TRIS": {"min": 0, "max": 9, "cantidad": 5},
+    "Melate": {"min": 1, "max": 56, "cantidad": 6},
+    "Chispazo": {"min": 1, "max": 28, "cantidad": 5},
+    "Powerball": {"min": 1, "max": 69, "cantidad": 5},
+    "Mega Millions": {"min": 1, "max": 70, "cantidad": 5},
+    "Gana Gato": {"min": 1, "max": 5, "cantidad": 8}
 }
 
 # =========================
@@ -224,122 +154,50 @@ GAME_CONFIG = {
 # =========================
 
 def generar_datos(game):
-
     minimo = GAME_CONFIG[game]["min"]
     maximo = GAME_CONFIG[game]["max"]
-
-    numeros = np.random.randint(
-        minimo,
-        maximo + 1,
-        180
-    )
-
-    timestamps = pd.date_range(
-        start=datetime.now(),
-        periods=180,
-        freq="min"
-    )
-
-    return pd.DataFrame({
-        "numero": numeros,
-        "timestamp": timestamps
-    })
+    numeros = np.random.randint(minimo, maximo + 1, 180)
+    timestamps = pd.date_range(start=datetime.now(), periods=180, freq="min")
+    return pd.DataFrame({"numero": numeros, "timestamp": timestamps})
 
 def espejo(numero):
-
     mapa = {
-        "0":"5",
-        "1":"6",
-        "2":"7",
-        "3":"8",
-        "4":"9",
-        "5":"0",
-        "6":"1",
-        "7":"2",
-        "8":"3",
-        "9":"4"
+        "0":"5", "1":"6", "2":"7", "3":"8", "4":"9",
+        "5":"0", "6":"1", "7":"2", "8":"3", "9":"4"
     }
-
     resultado = ""
-
     for d in str(numero):
-
         if d in mapa:
             resultado += mapa[d]
-
         else:
             resultado += d
-
     return resultado
 
-def calcular_convergencia(
-    persistencia,
-    sincronias
-):
-
-    score = (
-        persistencia * 10
-    ) + (
-        sincronias * 5
-    )
-
+def calcular_convergencia(persistencia, sincronias):
+    score = (persistencia * 10) + (sincronias * 5)
     if score >= 120:
         return "⚡ Crítica", "🔥"
-
     elif score >= 80:
         return "Alta", "⚡"
-
     elif score >= 40:
         return "Media", "📡"
-
     else:
         return "Baja", "🌊"
 
-def interpretacion_ia(
-    dominante,
-    persistencia,
-    sincronias,
-    convergencia
-):
-
+def interpretacion_ia(dominante, persistencia, sincronias, convergencia):
     mensajes = []
-
     if persistencia >= 10:
-
-        mensajes.append(
-            "Persistencia elevada detectada"
-        )
-
+        mensajes.append("Persistencia elevada detectada")
     if sincronias >= 5:
-
-        mensajes.append(
-            "Sincronías múltiples activas"
-        )
-
+        mensajes.append("Sincronías múltiples activas")
     if dominante % 2 == 0:
-
-        mensajes.append(
-            "Predominio estructural par"
-        )
-
+        mensajes.append("Predominio estructural par")
     else:
-
-        mensajes.append(
-            "Predominio estructural impar"
-        )
-
+        mensajes.append("Predominio estructural impar")
     if convergencia == "Crítica":
-
-        mensajes.append(
-            "Ventana crítica activa"
-        )
-
+        mensajes.append("Ventana crítica activa")
     elif convergencia == "Alta":
-
-        mensajes.append(
-            "Zona caliente detectada"
-        )
-
+        mensajes.append("Zona caliente detectada")
     return mensajes
 
 # =========================
@@ -366,58 +224,32 @@ menu = st.sidebar.radio(
 # =========================
 
 if menu == "🏠 Dashboard Global":
-
     st.title("🧠 SignalMap IA")
-
-    st.markdown("""
-    ## 🌐 MATRIZ GLOBAL DE CONVERGENCIA
-    """)
-
+    st.markdown("## 🌐 MATRIZ GLOBAL DE CONVERGENCIA")
+    
     resultados = []
-
     cols = st.columns(2)
-
     contador_col = 0
 
     for game in GAME_CONFIG.keys():
-
         df = generar_datos(game)
-
         freq = df["numero"].value_counts()
-
         dominante = int(freq.idxmax())
-
         persistencia = int(freq.max())
+        sincronias = int(len(freq[freq > 5]))
 
-        sincronias = int(
-            len(freq[freq > 5])
-        )
-
-        convergencia, icono = calcular_convergencia(
-            persistencia,
-            sincronias
-        )
+        convergencia, icono = calcular_convergencia(persistencia, sincronias)
 
         resultados.append({
-
             "Sorteo": game,
-
             "Estado": icono,
-
             "Convergencia": convergencia,
-
             "Dominante": dominante
         })
 
-        mensajes = interpretacion_ia(
-            dominante,
-            persistencia,
-            sincronias,
-            convergencia
-        )
+        mensajes = interpretacion_ia(dominante, persistencia, sincronias, convergencia)
 
         with cols[contador_col]:
-
             st.markdown(f"""
             <div class="dashboard-card">
             <h3>{icono} {game}</h3>
@@ -429,161 +261,77 @@ if menu == "🏠 Dashboard Global":
             """, unsafe_allow_html=True)
 
             for m in mensajes:
-
                 st.write(f"• {m}")
 
-            fig = px.bar(
-                x=freq.index,
-                y=freq.values,
-                color=freq.values
-            )
-
-            fig.update_layout(
-                template="plotly_dark",
-                height=250
-            )
-
-            st.plotly_chart(
-                fig,
-                use_container_width=True
-            )
+            fig = px.bar(x=freq.index, y=freq.values, color=freq.values)
+            fig.update_layout(template="plotly_dark", height=250)
+            st.plotly_chart(fig, use_container_width=True)
 
         contador_col += 1
-
         if contador_col > 1:
             contador_col = 0
 
     st.divider()
-
-    st.markdown("""
-    ## 📊 MATRIZ GLOBAL
-    """)
-
-    tabla_df = pd.DataFrame(
-        resultados
-    )
-
-    st.dataframe(
-        tabla_df,
-        use_container_width=True
-    )
+    st.markdown("## 📊 MATRIZ GLOBAL")
+    tabla_df = pd.DataFrame(resultados)
+    st.dataframe(tabla_df, use_container_width=True)
 
 # =========================
 # SORTEO SUGERIDO
 # =========================
 
 elif menu == "🎯 Sorteo Número Sugerido":
-
     st.title("🎯 Sorteo Número Sugerido")
 
     for game in GAME_CONFIG.keys():
-
-        st.markdown(f"""
-        ## 🎲 {game}
-        """)
-
-        registros = db.child(
-            "signals"
-        ).child(
-            st.session_state.user["localId"]
-        ).child(
-            game
-        ).get()
-
+        st.markdown(f"## 🎲 {game}")
+        
+        registros = db.child("signals").child(st.session_state.user["localId"]).child(game).get()
         todos = []
 
         if registros.each():
-
             for r in registros.each():
-
                 data = r.val()
-
                 if "numeros" in data:
-
-                    todos.extend(
-                        data["numeros"]
-                    )
+                    todos.extend(data["numeros"])
 
         if len(todos) == 0:
-
             minimo = GAME_CONFIG[game]["min"]
-
             maximo = GAME_CONFIG[game]["max"]
-
-            todos = list(np.random.randint(
-                minimo,
-                maximo + 1,
-                120
-            ))
+            todos = list(np.random.randint(minimo, maximo + 1, 120))
 
         contador = Counter(todos)
-
-        top = contador.most_common(
-            GAME_CONFIG[game]["cantidad"]
-        )
-
+        top = contador.most_common(GAME_CONFIG[game]["cantidad"])
         sugeridos = [x[0] for x in top]
 
-        st.success(
-            f"🎯 Sugerencia IA: {sugeridos}"
-        )
+        st.success(f"🎯 Sugerencia IA: {sugeridos}")
 
         espejo_combo = []
-
         for n in sugeridos:
+            espejo_combo.append(espejo(n))
 
-            espejo_combo.append(
-                espejo(n)
-            )
-
-        st.info(
-            f"🪞 Dualidad: {espejo_combo}"
-        )
+        st.info(f"🪞 Dualidad: {espejo_combo}")
 
 # =========================
 # AI INTERPRETATION
 # =========================
 
 elif menu == "🧠 AI Interpretation":
-
     st.title("🧠 AI Interpretation")
 
     for game in GAME_CONFIG.keys():
-
-        st.markdown(f"""
-        ## 🔍 {game}
-        """)
-
+        st.markdown(f"## 🔍 {game}")
         df = generar_datos(game)
-
         freq = df["numero"].value_counts()
-
         dominante = int(freq.idxmax())
-
         persistencia = int(freq.max())
+        sincronias = int(len(freq[freq > 5]))
 
-        sincronias = int(
-            len(freq[freq > 5])
-        )
+        convergencia, icono = calcular_convergencia(persistencia, sincronias)
+        mensajes = interpretacion_ia(dominante, persistencia, sincronias, convergencia)
 
-        convergencia, icono = calcular_convergencia(
-            persistencia,
-            sincronias
-        )
-
-        mensajes = interpretacion_ia(
-            dominante,
-            persistencia,
-            sincronias,
-            convergencia
-        )
-
-        st.markdown(f"""
-        ### {icono} {convergencia}
-        """)
-
+        st.markdown(f"### {icono} {convergencia}")
         for m in mensajes:
-
             st.write(f"• {m}")
 
 # =========================
@@ -591,139 +339,68 @@ elif menu == "🧠 AI Interpretation":
 # =========================
 
 elif menu == "🪞 Motor Espejo":
-
     st.title("🪞 Motor Espejo")
-
-    numero = st.text_input(
-        "Introduce combinación"
-    )
-
+    numero = st.text_input("Introduce combinación")
     if numero:
-
         resultado = espejo(numero)
-
-        st.success(
-            f"🪞 Espejo estructural: {resultado}"
-        )
+        st.success(f"🪞 Espejo estructural: {resultado}")
 
 # =========================
 # DIARIO
 # =========================
 
 elif menu == "📖 Diario de Señales":
-
     st.title("📖 Diario de Señales")
-
-    sorteo = st.selectbox(
-        "Sorteo",
-        list(GAME_CONFIG.keys())
-    )
-
-    numeros = st.text_input(
-        "Introduce números separados por coma"
-    )
-
-    nota = st.text_area(
-        "Interpretación"
-    )
-
+    sorteo = st.selectbox("Sorteo", list(GAME_CONFIG.keys()))
+    numeros = st.text_input("Introduce números separados por coma")
+    nota = st.text_area("Interpretación")
+    
     nivel = st.select_slider(
         "Nivel IA",
-        options=[
-            "🌊 Baja",
-            "📡 Media",
-            "⚡ Alta",
-            "🔥 Crítica"
-        ]
+        options=["🌊 Baja", "📡 Media", "⚡ Alta", "🔥 Crítica"]
     )
 
     if st.button("Guardar señal"):
-
-        lista_numeros = [
-
-            int(x.strip())
-
-            for x in numeros.split(",")
-
-            if x.strip().isdigit()
-        ]
-
+        lista_numeros = [int(x.strip()) for x in numeros.split(",") if x.strip().isdigit()]
+        
         registro = {
-
             "timestamp": str(datetime.now()),
-
             "numeros": lista_numeros,
-
             "nota": nota,
-
             "nivel": nivel
         }
 
-        db.child(
-            "signals"
-        ).child(
-            st.session_state.user["localId"]
-        ).child(
-            sorteo
-        ).push(
-            registro
-        )
-
-        st.success(
-            "⚡ Señal guardada en Firebase"
-        )
+        db.child("signals").child(st.session_state.user["localId"]).child(sorteo).push(registro)
+        st.success("⚡ Señal guardada en Firebase")
 
 # =========================
 # TIMELINE
 # =========================
 
 elif menu == "📊 Timeline":
-
     st.title("📊 Timeline")
-
     timeline = []
 
     for game in GAME_CONFIG.keys():
-
-        registros = db.child(
-            "signals"
-        ).child(
-            st.session_state.user["localId"]
-        ).child(
-            game
-        ).get()
-
+        registros = db.child("signals").child(st.session_state.user["localId"]).child(game).get()
         if registros.each():
-
             for r in registros.each():
-
                 data = r.val()
-
                 data["sorteo"] = game
-
                 timeline.append(data)
 
     if len(timeline) > 0:
-
-        timeline_df = pd.DataFrame(
-            timeline
-        )
-
-        st.dataframe(
-            timeline_df,
-            use_container_width=True
-        )
+        timeline_df = pd.DataFrame(timeline)
+        st.dataframe(timeline_df, use_container_width=True)
 
 # =========================
 # MASTER CONSOLE
 # =========================
 
 elif menu == "🛰️ Master Console":
-
     st.title("🛰️ Master Console")
-
+    
     estados = {
-
         "Firebase": "Activo",
         "Convergencia": "Operativa",
         "AI Interpretation": "Online",
@@ -731,14 +408,10 @@ elif menu == "🛰️ Master Console":
         "Timeline": "Sincronizado"
     }
 
-    for k,v in estados.items():
-
-        st.success(
-            f"{k}: {v}"
-        )
+    for k, v in estados.items():
+        st.success(f"{k}: {v}")
 
     st.divider()
-
     st.code("""
 >>> SIGNALMAP IA ACTIVE
 >>> FIREBASE CONNECTED
@@ -747,3 +420,8 @@ elif menu == "🛰️ Master Console":
 >>> GLOBAL MATRIX READY
 >>> MIRROR ENGINE STANDBY
 """)
+
+```
+### Nota de seguridad importante sobre Firebase:
+ * Recuerda que Firebase Authentication tiene una regla estricta por defecto: **Las contraseñas deben tener un mínimo de 6 caracteres**. Si intentabas crear una cuenta con una clave más corta (como 123), el sistema lanzaba error de inmediato de manera interna. Ya agregué un validador en el código para avisarte en pantalla si eso pasa.
+ * Asegúrate de tener habilitado el método de inicio de sesión **"Correo electrónico/contraseña"** (Email/Password) dentro de la consola web de tu proyecto en Firebase (en la sección *Authentication -> Sign-in method*). Si está apagado allá, la app nunca se podrá conectar aunque el código esté perfecto.
