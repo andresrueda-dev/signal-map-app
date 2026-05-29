@@ -42,9 +42,6 @@ firebase = pyrebase.initialize_app(
 auth = firebase.auth()
 
 db = firebase.database()
-```
-
-
 
 # =========================
 # PAGE CONFIG
