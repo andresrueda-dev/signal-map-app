@@ -1,5 +1,5 @@
 # =========================
-# SIGNALMAP IA - FIREBASE AI PLATFORM
+# SIGNALMAP IA - INSTANT ACCESS PLATFORM
 # =========================
 
 import streamlit as st
@@ -13,7 +13,7 @@ import random
 import json
 
 # =========================
-# FIREBASE
+# FIREBASE CONFIG & INITIALIZATION
 # =========================
 
 import pyrebase
@@ -28,16 +28,20 @@ firebase_config = {
     "appId": "1:967824400239:web:bc30c8b4eb9610b3aed29a"
 }
 
-firebase = pyrebase.initialize_app(firebase_config)
-auth = firebase.auth()
-db = firebase.database()
+# Inicialización segura de Firebase
+try:
+    firebase = pyrebase.initialize_app(firebase_config)
+    db = firebase.database()
+    firebase_active = True
+except:
+    firebase_active = False
 
 # =========================
 # PAGE CONFIG
 # =========================
 
 st.set_page_config(
-    page_title="SignalMap IA",
+    page_title="SignalMap IA - Live",
     layout="wide",
     page_icon="🧠"
 )
@@ -74,67 +78,24 @@ h1,h2,h3,h4,h5 {
     border: 1px solid #1f2937;
     margin-bottom: 10px;
 }
-.card-critical {
-    border: 1px solid #ef4444;
-    box-shadow: 0px 0px 12px #ef4444;
-}
-.card-hot {
-    border: 1px solid #06b6d4;
-    box-shadow: 0px 0px 10px #06b6d4;
-}
 </style>
 """, unsafe_allow_html=True)
 
 # =========================
-# LOGIN
+# LOCAL STORAGE INITIALIZATION (Bypass Login)
 # =========================
 
-if "user" not in st.session_state:
-    st.session_state.user = None
+if "local_signals" not in st.session_state:
+    st.session_state.local_signals = []
 
-if st.session_state.user is None:
+if "user_id" not in st.session_state:
+    st.session_state.user_id = "user_directo_hoy"
 
-    st.title("🧠 SignalMap IA")
-
-    st.markdown("""
-    ## 🔐 Login Firebase
-    """)
-
-    # Usamos claves únicas y limpiamos valores de entrada para evitar conflictos
-    email_input = st.text_input("Correo", key="login_email").strip()
-    password_input = st.text_input("Contraseña", type="password", key="login_pass").strip()
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        if st.button("Iniciar Sesión"):
-            if email_input and password_input:
-                try:
-                    user = auth.sign_in_with_email_and_password(email_input, password_input)
-                    st.session_state.user = user
-                    st.success("Sesión iniciada con éxito")
-                    st.rerun()
-                except Exception as e:
-                    st.error("Error al iniciar sesión: Verifica tus credenciales")
-            else:
-                st.warning("Por favor, llena ambos campos para iniciar sesión.")
-
-    with col2:
-        if st.button("Crear Cuenta"):
-            if email_input and password_input:
-                try:
-                    # Firebase requiere contraseñas de mínimo 6 caracteres
-                    if len(password_input) < 6:
-                        st.error("La contraseña debe tener al menos 6 caracteres.")
-                    else:
-                        user = auth.create_user_with_email_and_password(email_input, password_input)
-                        st.success("Cuenta creada con éxito. ¡Ya puedes iniciar sesión!")
-                except Exception as e:
-                    st.error("No se pudo crear la cuenta. Es posible que el correo ya esté registrado o tenga un formato inválido.")
-            else:
-                st.warning("Por favor, llena ambos campos para registrarte.")
-
-    st.stop()
+# Alerta de estado en la parte superior
+if firebase_active:
+    st.sidebar.success("📡 Modo Híbrido: Guardando local y en Firebase")
+else:
+    st.sidebar.warning("⚠️ Modo Local Activo: Datos guardados en el navegador")
 
 # =========================
 # CONFIG
@@ -161,72 +122,129 @@ def generar_datos(game):
     return pd.DataFrame({"numero": numeros, "timestamp": timestamps})
 
 def espejo(numero):
-    mapa = {
-        "0":"5", "1":"6", "2":"7", "3":"8", "4":"9",
-        "5":"0", "6":"1", "7":"2", "8":"3", "9":"4"
-    }
+    mapa = {"0":"5", "1":"6", "2":"7", "3":"8", "4":"9", "5":"0", "6":"1", "7":"2", "8":"3", "9":"4"}
     resultado = ""
     for d in str(numero):
-        if d in mapa:
-            resultado += mapa[d]
-        else:
-            resultado += d
+        if d in mapa: resultado += mapa[d]
+        else: resultado += d
     return resultado
 
 def calcular_convergencia(persistencia, sincronias):
     score = (persistencia * 10) + (sincronias * 5)
-    if score >= 120:
-        return "⚡ Crítica", "🔥"
-    elif score >= 80:
-        return "Alta", "⚡"
-    elif score >= 40:
-        return "Media", "📡"
-    else:
-        return "Baja", "🌊"
+    if score >= 120: return "⚡ Crítica", "🔥"
+    elif score >= 80: return "Alta", "⚡"
+    elif score >= 40: return "Media", "📡"
+    else: return "Baja", "🌊"
 
 def interpretacion_ia(dominante, persistencia, sincronias, convergencia):
     mensajes = []
-    if persistencia >= 10:
-        mensajes.append("Persistencia elevada detectada")
-    if sincronias >= 5:
-        mensajes.append("Sincronías múltiples activas")
-    if dominante % 2 == 0:
-        mensajes.append("Predominio estructural par")
-    else:
-        mensajes.append("Predominio estructural impar")
-    if convergencia == "Crítica":
-        mensajes.append("Ventana crítica activa")
-    elif convergencia == "Alta":
-        mensajes.append("Zona caliente detectada")
+    if persistencia >= 10: mensajes.append("Persistencia elevada detectada")
+    if sincronias >= 5: mensajes.append("Sincronías múltiples activas")
+    if dominante % 2 == 0: mensajes.append("Predominio estructural par")
+    else: mensajes.append("Predominio estructural impar")
+    if convergencia == "Crítica": mensajes.append("Ventana crítica activa")
+    elif convergencia == "Alta": mensajes.append("Zona caliente detectada")
     return mensajes
 
 # =========================
-# SIDEBAR
+# SIDEBAR NAVEGACIÓN
 # =========================
 
 st.sidebar.title("🧭 SignalMap IA")
-
 menu = st.sidebar.radio(
     "Navegación",
     [
+        "📖 Diario de Señales (REGISTRO HOY)",
+        "📊 Timeline de Hoy",
         "🏠 Dashboard Global",
         "🎯 Sorteo Número Sugerido",
-        "🧠 AI Interpretation",
-        "🪞 Motor Espejo",
-        "📖 Diario de Señales",
-        "📊 Timeline",
-        "🛰️ Master Console"
+        "🪞 Motor Espejo"
     ]
 )
+
+# =========================
+# DIARIO DE SEÑALES (MÓDULO PRIORITARIO)
+# =========================
+
+if menu == "📖 Diario de Señales (REGISTRO HOY)":
+    st.title("📖 Diario de Señales - Registro Inmediato")
+    st.markdown("### Captura las configuraciones y secuencias detectadas hoy sin restricciones.")
+
+    sorteo = st.selectbox("Selecciona el Sorteo", list(GAME_CONFIG.keys()))
+    numeros = st.text_input("Introduce los números de hoy (separados por coma Ej: 7,1,2,2)")
+    nota = st.text_area("Notas / Interpretación de la señal")
+    nivel = st.select_slider("Nivel de Convergencia IA", options=["🌊 Baja", "📡 Media", "⚡ Alta", "🔥 Crítica"])
+
+    if st.button("🚀 Guardar Señal de Hoy"):
+        if numeros:
+            lista_numeros = [int(x.strip()) for x in numeros.split(",") if x.strip().isdigit()]
+            
+            registro = {
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "sorteo": sorteo,
+                "numeros": lista_numeros,
+                "nota": nota,
+                "nivel": nivel
+            }
+
+            # 1. Guardado Instantáneo en la Memoria Local
+            st.session_state.local_signals.append(registro)
+            st.success("✅ ¡Señal registrada localmente con éxito en la sesión!")
+
+            # 2. Intento de respaldo en Firebase en segundo plano
+            if firebase_active:
+                try:
+                    db.child("signals").child(st.session_state.user_id).child(sorteo).push(registro)
+                    st.info("📡 Copia de seguridad sincronizada en la nube de Firebase.")
+                except:
+                    st.warning("⚠️ No se pudo enviar a Firebase, pero tu señal está segura en la tabla local abajo.")
+        else:
+            st.error("Por favor introduce números válidos antes de guardar.")
+
+# =========================
+# TIMELINE DE HOY
+# =========================
+
+elif menu == "📊 Timeline de Hoy":
+    st.title("📊 Historial de Señales Capturadas Hoy")
+    
+    # Combinar datos locales y de Firebase si están disponibles
+    todas_las_sevales = list(st.session_state.local_signals)
+
+    if firebase_active:
+        try:
+            for game in GAME_CONFIG.keys():
+                registros = db.child("signals").child(st.session_state.user_id).child(game).get()
+                if registros.each():
+                    for r in registros.each():
+                        data = r.val()
+                        data["sorteo"] = game
+                        if data not in todas_las_sevales:
+                            todas_las_sevales.append(data)
+        except:
+            pass
+
+    if len(todas_las_sevales) > 0:
+        df_timeline = pd.DataFrame(todas_las_sevales)
+        st.dataframe(df_timeline, use_container_width=True)
+        
+        # Opción para descargar tus datos de hoy en JSON por si cierras la app
+        json_string = json.dumps(todas_las_sevales, indent=4)
+        st.download_button(
+            label="📥 Descargar Respaldo de Señales (JSON)",
+            data=json_string,
+            file_name=f"signals_respaldo_{datetime.now().strftime('%Y%m%d')}.json",
+            mime="application/json"
+        )
+    else:
+        st.info("Aún no has registrado señales en esta sesión. Ve al menú 'Diario de Señales' para empezar.")
 
 # =========================
 # DASHBOARD GLOBAL
 # =========================
 
-if menu == "🏠 Dashboard Global":
-    st.title("🧠 SignalMap IA")
-    st.markdown("## 🌐 MATRIZ GLOBAL DE CONVERGENCIA")
-    
+elif menu == "🏠 Dashboard Global":
+    st.title("🧠 Matriz Global de Convergencia")
     resultados = []
     cols = st.columns(2)
     contador_col = 0
@@ -237,44 +255,25 @@ if menu == "🏠 Dashboard Global":
         dominante = int(freq.idxmax())
         persistencia = int(freq.max())
         sincronias = int(len(freq[freq > 5]))
-
         convergencia, icono = calcular_convergencia(persistencia, sincronias)
 
-        resultados.append({
-            "Sorteo": game,
-            "Estado": icono,
-            "Convergencia": convergencia,
-            "Dominante": dominante
-        })
-
+        resultados.append({"Sorteo": game, "Estado": icono, "Convergencia": convergencia, "Dominante": dominante})
         mensajes = interpretacion_ia(dominante, persistencia, sincronias, convergencia)
 
         with cols[contador_col]:
             st.markdown(f"""
             <div class="dashboard-card">
             <h3>{icono} {game}</h3>
-            <p><b>Convergencia:</b> {convergencia}</p>
-            <p><b>Dominante:</b> {dominante}</p>
-            <p><b>Persistencia:</b> {persistencia}</p>
-            <p><b>Sincronías:</b> {sincronias}</p>
+            <p><b>Convergencia:</b> {convergencia} | <b>Dominante:</b> {dominante}</p>
+            <p><b>Persistencia:</b> {persistencia} | <b>Sincronías:</b> {sincronias}</p>
             </div>
             """, unsafe_allow_html=True)
-
-            for m in mensajes:
-                st.write(f"• {m}")
-
+            
             fig = px.bar(x=freq.index, y=freq.values, color=freq.values)
-            fig.update_layout(template="plotly_dark", height=250)
+            fig.update_layout(template="plotly_dark", height=200, margin=dict(l=20, r=20, t=20, b=20))
             st.plotly_chart(fig, use_container_width=True)
 
-        contador_col += 1
-        if contador_col > 1:
-            contador_col = 0
-
-    st.divider()
-    st.markdown("## 📊 MATRIZ GLOBAL")
-    tabla_df = pd.DataFrame(resultados)
-    st.dataframe(tabla_df, use_container_width=True)
+        contador_col = 0 if contador_col >= 1 else contador_col + 1
 
 # =========================
 # SORTEO SUGERIDO
@@ -282,146 +281,31 @@ if menu == "🏠 Dashboard Global":
 
 elif menu == "🎯 Sorteo Número Sugerido":
     st.title("🎯 Sorteo Número Sugerido")
-
     for game in GAME_CONFIG.keys():
         st.markdown(f"## 🎲 {game}")
         
-        registros = db.child("signals").child(st.session_state.user["localId"]).child(game).get()
+        # Extraer de la sesión actual
         todos = []
-
-        if registros.each():
-            for r in registros.each():
-                data = r.val()
-                if "numeros" in data:
-                    todos.extend(data["numeros"])
+        for s in st.session_state.local_signals:
+            if s["sorteo"] == game:
+                todos.extend(s["numeros"])
 
         if len(todos) == 0:
-            minimo = GAME_CONFIG[game]["min"]
-            maximo = GAME_CONFIG[game]["max"]
-            todos = list(np.random.randint(minimo, maximo + 1, 120))
+            todos = list(np.random.randint(GAME_CONFIG[game]["min"], GAME_CONFIG[game]["max"] + 1, 120))
 
         contador = Counter(todos)
         top = contador.most_common(GAME_CONFIG[game]["cantidad"])
         sugeridos = [x[0] for x in top]
 
         st.success(f"🎯 Sugerencia IA: {sugeridos}")
-
-        espejo_combo = []
-        for n in sugeridos:
-            espejo_combo.append(espejo(n))
-
-        st.info(f"🪞 Dualidad: {espejo_combo}")
-
-# =========================
-# AI INTERPRETATION
-# =========================
-
-elif menu == "🧠 AI Interpretation":
-    st.title("🧠 AI Interpretation")
-
-    for game in GAME_CONFIG.keys():
-        st.markdown(f"## 🔍 {game}")
-        df = generar_datos(game)
-        freq = df["numero"].value_counts()
-        dominante = int(freq.idxmax())
-        persistencia = int(freq.max())
-        sincronias = int(len(freq[freq > 5]))
-
-        convergencia, icono = calcular_convergencia(persistencia, sincronias)
-        mensajes = interpretacion_ia(dominante, persistencia, sincronias, convergencia)
-
-        st.markdown(f"### {icono} {convergencia}")
-        for m in mensajes:
-            st.write(f"• {m}")
+        st.info(f"🪞 Dualidad Espejo: {[espejo(n) for n in sugeridos]}")
 
 # =========================
 # MOTOR ESPEJO
 # =========================
 
 elif menu == "🪞 Motor Espejo":
-    st.title("🪞 Motor Espejo")
-    numero = st.text_input("Introduce combinación")
+    st.title("🪞 Motor Espejo Estructural")
+    numero = st.text_input("Introduce combinación o secuencia numérica")
     if numero:
-        resultado = espejo(numero)
-        st.success(f"🪞 Espejo estructural: {resultado}")
-
-# =========================
-# DIARIO
-# =========================
-
-elif menu == "📖 Diario de Señales":
-    st.title("📖 Diario de Señales")
-    sorteo = st.selectbox("Sorteo", list(GAME_CONFIG.keys()))
-    numeros = st.text_input("Introduce números separados por coma")
-    nota = st.text_area("Interpretación")
-    
-    nivel = st.select_slider(
-        "Nivel IA",
-        options=["🌊 Baja", "📡 Media", "⚡ Alta", "🔥 Crítica"]
-    )
-
-    if st.button("Guardar señal"):
-        lista_numeros = [int(x.strip()) for x in numeros.split(",") if x.strip().isdigit()]
-        
-        registro = {
-            "timestamp": str(datetime.now()),
-            "numeros": lista_numeros,
-            "nota": nota,
-            "nivel": nivel
-        }
-
-        db.child("signals").child(st.session_state.user["localId"]).child(sorteo).push(registro)
-        st.success("⚡ Señal guardada en Firebase")
-
-# =========================
-# TIMELINE
-# =========================
-
-elif menu == "📊 Timeline":
-    st.title("📊 Timeline")
-    timeline = []
-
-    for game in GAME_CONFIG.keys():
-        registros = db.child("signals").child(st.session_state.user["localId"]).child(game).get()
-        if registros.each():
-            for r in registros.each():
-                data = r.val()
-                data["sorteo"] = game
-                timeline.append(data)
-
-    if len(timeline) > 0:
-        timeline_df = pd.DataFrame(timeline)
-        st.dataframe(timeline_df, use_container_width=True)
-
-# =========================
-# MASTER CONSOLE
-# =========================
-
-elif menu == "🛰️ Master Console":
-    st.title("🛰️ Master Console")
-    
-    estados = {
-        "Firebase": "Activo",
-        "Convergencia": "Operativa",
-        "AI Interpretation": "Online",
-        "Motor Espejo": "Disponible",
-        "Timeline": "Sincronizado"
-    }
-
-    for k, v in estados.items():
-        st.success(f"{k}: {v}")
-
-    st.divider()
-    st.code("""
->>> SIGNALMAP IA ACTIVE
->>> FIREBASE CONNECTED
->>> AI CONVERGENCE ONLINE
->>> MULTI-LOTTERY MODE ACTIVE
->>> GLOBAL MATRIX READY
->>> MIRROR ENGINE STANDBY
-""")
-
-```
-### Nota de seguridad importante sobre Firebase:
- * Recuerda que Firebase Authentication tiene una regla estricta por defecto: **Las contraseñas deben tener un mínimo de 6 caracteres**. Si intentabas crear una cuenta con una clave más corta (como 123), el sistema lanzaba error de inmediato de manera interna. Ya agregué un validador en el código para avisarte en pantalla si eso pasa.
- * Asegúrate de tener habilitado el método de inicio de sesión **"Correo electrónico/contraseña"** (Email/Password) dentro de la consola web de tu proyecto en Firebase (en la sección *Authentication -> Sign-in method*). Si está apagado allá, la app nunca se podrá conectar aunque el código esté perfecto.
+        st.success(f"🪞 Espejo reflejado: {espejo(numero)}")
