@@ -1,9 +1,51 @@
 import streamlit as st
-import pandas as pd
-import numpy as np
+import requests
+from bs4 import BeautifulSoup
 import re
-from collections import deque
 
+def obtener_ultimo_sorteo_automatico(sorteo_nombre):
+    """
+    Extrae en tiempo real el último resultado oficial desde el portal de resultados.
+    Sorteos soportados: 'tris', 'chispazo'
+    """
+    try:
+        # Endpoint público y ligero de la Lotería Nacional para el histórico de hoy
+        url = "https://www.pronosticos.gob.mx/Home/Resultados"
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+        
+        # Hacemos la petición al servidor oficial
+        response = requests.get(url, headers=headers, timeout=7)
+        if response.status_code != 200:
+            return None
+            
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        if sorteo_nombre == 'chispazo':
+            # Buscamos el contenedor donde se imprimen las esferas de Chispazo
+            # La página oficial usa clases tipo 'bola' o estructuras de lista para los 5 números
+            contenedor = soup.find('div', id='divChispazo') or soup.find('div', class_='resultado-chispazo')
+            if contenedor:
+                # Extraemos todos los dígitos dentro del contenedor usando expresiones regulares
+                numeros = [int(s) for s in re.findall(r'\b\d+\b', contenedor.text)]
+                # Nos aseguramos de filtrar solo los 5 números del boleto (omitimos el número de sorteo)
+                numeros_validos = [n for n in numeros if 1 <= n <= 28][:5]
+                return sorted(numeros_validos)
+                
+        elif sorteo_nombre == 'tris':
+            # Buscamos el contenedor del último Tris (son 5 dígitos directos del 0 al 9)
+            contenedor = soup.find('div', id='divTris') or soup.find('div', class_='resultado-tris')
+            if contenedor:
+                numeros = [int(s) for s in re.findall(r'\b\d+\b', contenedor.text)]
+                # El Tris son los últimos o primeros 5 dígitos individuales (0-9) según el diseño de la tabla
+                numeros_validos = [n for n in numeros if 0 <= n <= 9][:5]
+                return numeros_validos
+                
+        return None
+    except Exception as e:
+        # En caso de caída de servidor o cambio de diseño en la página oficial, evita que tu app se rompa
+        return None
 # =====================================================================
 # 1. CONFIGURACIÓN DEL MOTOR DE MEMORIA CIRCULAR (500 NODOS FRESCOS)
 # =====================================================================
