@@ -13,13 +13,12 @@ import plotly.graph_objects as go
 from PIL import Image
 
 # =====================================================================
-# INICIALIZACIÓN OPTIMIZADA BAJO CONSUMO (EASYOCR COLD RAM)
+# INICIALIZACIÓN EN CACHÉ DEL MOTOR DE VISIÓN (EASYOCR COLD RAM)
 # =====================================================================
 @st.cache_resource
 def inicializar_lector_ocr():
     try:
         import easyocr
-        # Activamos descarga limpia y forzamos uso eficiente de CPU en la nube
         return easyocr.Reader(['es', 'en'], gpu=False, download_enabled=True)
     except Exception as e:
         return None
@@ -145,7 +144,7 @@ def cargar_nodos_desde_csv():
 # 2. IA VISION SCANNER UNIVERSAL (EASYOCR MULTI-ESTRUCTURA)
 # =====================================================================
 def escanear_lineas_easyocr(imagen_pil, tipo_sorteo):
-    if reader is None: return [False, "Lector EasyOCR sobrecargado. Intenta de nuevo."]
+    if reader is None: return [False, "Lector EasyOCR no inicializado."]
     img_array = np.array(imagen_pil.convert('RGB'))
     resultados_ocr = reader.readtext(img_array, detail=0)
     lineas_encontradas = []
@@ -168,7 +167,7 @@ def escanear_lineas_easyocr(imagen_pil, tipo_sorteo):
                 lineas_encontradas.append([int(d) for d in str(n_l)])
                 
     if len(lineas_encontradas) > 0: return [True, lineas_encontradas]
-    return [False, "Formato no detectado. Asegúrate de encuadrar bien."]
+    return [False, "No se detectó el formato. Intenta otra toma."]
 
 # =====================================================================
 # 3. MOTORES MATEMÁTICOS FRACTALES (GEOMETRÍA INVARIANTE)
@@ -221,18 +220,20 @@ df_analisis = calcular_coordenadas_fractales(list(st.session_state.mapa_nodos), 
 # =====================================================================
 tab_dash, tab_captura, tab_tiros = st.tabs(["📊 Dashboard Global & Constelación", "📸 IA Vision Scanner (EasyOCR)", "🎯 Focos Atractores & Sugerencias"])
 
-# --- PESTAÑA 1: VENTANA DE CONVERGENCIA TOTAL ---
+# --- PESTAÑA 1: VENTANA DE CONVERGENCIA TOTAL CORREGIDA ---
 with tab_dash:
     st.subheader("🎛️ Ventana General de Convergencia Espectral")
+    st.caption("Estructura térmica calculada integrando entradas manuales, automáticas y escaneos ópticos (_OCR).")
     
     grid_cols = st.columns(4)
     for index, s_name in enumerate(sorteos_lista):
         with grid_cols[index % 4]:
             df_sorteo_actual = df_analisis[df_analisis['Sorteo_Tipo'].str.contains(s_name, case=False, na=False)]
+            
             if len(df_sorteo_actual) > 0:
                 estables_count = len(df_sorteo_actual[df_sorteo_actual['Clasificación'] == 'Estable'])
                 ratio_conv = (estables_count / len(df_sorteo_actual)) * 100
-                status_lbl = "🟢 ALTA CONVERGENCIA" if ratio_conv >= 22.0 else "🟡 CONVERGENCIA MEDIA" if ratio_conv >= 10.0 else "🔵 BAJA CONVERGENCIA"
+                status_lbl = "🟢 ALTA CONVERGENCIA" if ratio_conv >= 20.0 else "🟡 CONVERGENCIA MEDIA" if ratio_conv >= 10.0 else "🔵 BAJA CONVERGENCIA"
             else:
                 ratio_conv, status_lbl = 0.0, " Monitor listo"
                 
@@ -262,7 +263,7 @@ with tab_captura:
                         if guardar_nodo_en_csv(linea, tag_final):
                             st.session_state.mapa_nodos.append(linea)
                             st.session_state.mapa_tipos.append(tag_final)
-                    st.success("🎯 Escaneo completado con éxito.")
+                    st.success("🎯 Escaneo e inyección completados con éxito.")
                     st.rerun()
                 else:
                     st.error(f"❌ {resultado}")
@@ -270,6 +271,7 @@ with tab_captura:
 # --- PESTAÑA 3: FOCOS ATRACTORES POR JUEGO ---
 with tab_tiros:
     st.subheader("🎯 Focos Atractores por Coeficiente de Resonancia")
+    st.caption("Sugerencias de alta densidad calculadas usando búsquedas mapeadas:")
     
     df_filtrado = df_analisis.sort_values(by='Resonancia_Score', ascending=False)
     
@@ -279,7 +281,7 @@ with tab_tiros:
         if len(df_s_estables) > 0:
             sug_v = df_s_estables.iloc[0]['Vector_Boleto']
         else:
-            sug_v = "Calibrando mallas... [Frecuencia base en espera]"
+            sug_v = "Calibrando mallas... [Inyecta boletos en la pestaña anterior]"
             
         with st.status(f"🚀 Línea de Máxima Resonancia para {s_meta}", expanded=True):
             st.code(f"{sug_v}", language="text")
