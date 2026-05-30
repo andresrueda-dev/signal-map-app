@@ -1,6 +1,5 @@
 streamlit
 plotly
-plotly-express
 numpy
 pandas
 easyocr
@@ -11,3 +10,6 @@ pyrebase4
 beautifulsoup4
 requests
 pytz
+opencv-python-headless
+torch
+torchvision
