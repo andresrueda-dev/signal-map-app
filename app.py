@@ -69,36 +69,68 @@ if "boletos_auditados" not in st.session_state: st.session_state.boletos_auditad
 if "user_id" not in st.session_state: st.session_state.user_id = "user_directo_hoy"
 
 GAME_CONFIG = {
-    "TRIS": {"min": 0, "max": 9, "cantidad": 5, "archivo": "data/Tris_SIGNALMAP.csv", "columnas": ["num_1", "num_2", "num_3", "num_4", "num_5"], "es_lineal": True},
-    "Chispazo": {"min": 1, "max": 28, "cantidad": 5, "archivo": "data/Chispazo_SIGNALMAP.csv", "columnas": ["num_1", "num_2", "num_3", "num_4", "num_5"], "es_lineal": False},
-    "Melate": {"min": 1, "max": 56, "cantidad": 6, "archivo": "data/Melate_SIGNALMAP.csv", "columnas": ["num_1", "num_2", "num_3", "num_4", "num_5", "num_6"], "es_lineal": False},
-    "Revancha": {"min": 1, "max": 56, "cantidad": 6, "archivo": "data/Revancha_SIGNALMAP.csv", "columnas": ["num_1", "num_2", "num_3", "num_4", "num_5", "num_6"], "es_lineal": False}
-}
-"Revanchita": {
-    "min": 1,
-    "max": 56,
-    "cantidad": 6,
-    "archivo": "data/Revanchita_SIGNALMAP.csv",
-    "columnas": ["num_1","num_2","num_3","num_4","num_5","num_6"],
-    "es_lineal": False
-},
+    "TRIS": {
+        "min": 0,
+        "max": 9,
+        "cantidad": 5,
+        "archivo": "data/Tris_SIGNALMAP.csv",
+        "columnas": ["num_1","num_2","num_3","num_4","num_5"],
+        "es_lineal": True
+    },
 
-"Melate Retro": {
-    "min": 1,
-    "max": 39,
-    "cantidad": 6,
-    "archivo": "data/MelateRetro_SIGNALMAP.csv",
-    "columnas": ["num_1","num_2","num_3","num_4","num_5","num_6"],
-    "es_lineal": False
-},
+    "Chispazo": {
+        "min": 1,
+        "max": 28,
+        "cantidad": 5,
+        "archivo": "data/Chispazo_SIGNALMAP.csv",
+        "columnas": ["num_1","num_2","num_3","num_4","num_5"],
+        "es_lineal": False
+    },
 
-"Gana Gato": {
-    "min": 1,
-    "max": 5,
-    "cantidad": 8,
-    "archivo": "data/GanaGato_SIGNALMAP.csv",
-    "columnas": ["num_1","num_2","num_3","num_4","num_5","num_6","num_7","num_8"],
-    "es_lineal": False
+    "Melate": {
+        "min": 1,
+        "max": 56,
+        "cantidad": 6,
+        "archivo": "data/Melate_SIGNALMAP.csv",
+        "columnas": ["num_1","num_2","num_3","num_4","num_5","num_6"],
+        "es_lineal": False
+    },
+
+    "Revancha": {
+        "min": 1,
+        "max": 56,
+        "cantidad": 6,
+        "archivo": "data/Revancha_SIGNALMAP.csv",
+        "columnas": ["num_1","num_2","num_3","num_4","num_5","num_6"],
+        "es_lineal": False
+    },
+
+    "Revanchita": {
+        "min": 1,
+        "max": 56,
+        "cantidad": 6,
+        "archivo": "data/Revanchita_SIGNALMAP.csv",
+        "columnas": ["num_1","num_2","num_3","num_4","num_5","num_6"],
+        "es_lineal": False
+    },
+
+    "Melate Retro": {
+        "min": 1,
+        "max": 39,
+        "cantidad": 6,
+        "archivo": "data/MelateRetro_SIGNALMAP.csv",
+        "columnas": ["num_1","num_2","num_3","num_4","num_5","num_6"],
+        "es_lineal": False
+    },
+
+    "Gana Gato": {
+        "min": 1,
+        "max": 5,
+        "cantidad": 8,
+        "archivo": "data/GanaGato_SIGNALMAP.csv",
+        "columnas": ["num_1","num_2","num_3","num_4","num_5","num_6","num_7","num_8"],
+        "es_lineal": False
+    }
 }
 # ========================================================
 # REINGENIERÍA: MOTOR ESPEJO CALIBRADO POR FRONTERA MÁXIMA
