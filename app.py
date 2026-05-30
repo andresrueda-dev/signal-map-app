@@ -9,6 +9,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from collections import Counter
 from datetime import datetime
+from config import GAME_CONFIG
 import os
 
 # Importación segura del Motor Fractal
@@ -25,6 +26,85 @@ except ImportError:
                 datos = np.array(seq, dtype=float)
                 dot_x = np.dot(datos, np.arange(1, len(datos) + 1)) if len(datos) > 0 else 0
                 return (np.sin(dot_x)*0.5 - 0.75), (np.cos(dot_x)*0.5)
+import streamlit as st
+from datetime import datetime
+
+# --- CONFIGURACIÓN CENTRAL DE JUEGOS ---
+GAME_CONFIG = {
+    "Tris Medio Día": {"min": 0, "max": 9, "cantidad": 5, "archivo": "data/TrisMD.csv"},
+    "Tris Tres": {"min": 0, "max": 9, "cantidad": 5, "archivo": "data/Tris3.csv"},
+    "Tris Extra": {"min": 0, "max": 9, "cantidad": 5, "archivo": "data/TrisExtra.csv"},
+    "Tris Siete": {"min": 0, "max": 9, "cantidad": 5, "archivo": "data/Tris7.csv"},
+    "Tris Clásico": {"min": 0, "max": 9, "cantidad": 5, "archivo": "data/TrisClasico.csv"},
+    
+    "Chispazo Tres": {"min": 1, "max": 28, "cantidad": 5, "archivo": "data/Chispazo3.csv"},
+    "Chispazo Clásico": {"min": 1, "max": 28, "cantidad": 5, "archivo": "data/Chispazo.csv"},
+    
+    "Melate": {"min": 1, "max": 56, "cantidad": 6, "archivo": "data/Melate.csv"},
+    "Revancha": {"min": 1, "max": 56, "cantidad": 6, "archivo": "data/Revancha.csv"},
+    "Revanchita": {"min": 1, "max": 56, "cantidad": 6, "archivo": "data/Revanchita.csv"},
+    "Melate Retro": {"min": 1, "max": 39, "cantidad": 6, "archivo": "data/MelateRetro.csv"},
+    
+    "Gana Gato": {"tipo": "matriz", "archivo": "data/GanaGato.csv"},
+    
+    "Sorteo Mayor": {"min": 0, "max": 9, "cantidad": 5, "archivo": "data/Mayor.csv"},
+    "Sorteo Superior": {"min": 0, "max": 9, "cantidad": 5, "archivo": "data/Superior.csv"},
+    "Sorteo Zodiaco": {"min": 0, "max": 9, "cantidad": 5, "archivo": "data/Zodiaco.csv"},
+    "Sorteo Especial": {"min": 0, "max": 9, "cantidad": 5, "archivo": "data/Especial.csv"}
+}
+
+# --- RADAR DE CIERRE ---
+HORARIOS_SORTEOS = {
+    "Tris Medio Día": "13:00", "Tris Tres": "15:00", "Tris Extra": "17:00",
+    "Tris Siete": "19:00", "Tris Clásico": "21:00",
+    "Chispazo Tres": "15:00", "Chispazo Clásico": "21:00",
+    "Melate": "21:00", "Revancha": "21:00", "Revanchita": "21:00",
+    "Melate Retro": "21:00", "Gana Gato": "21:00"
+}
+
+def render_radar():
+    st.subheader("🚨 Próximo Cierre")
+    ahora = datetime.now()
+    faltantes = []
+
+    for nombre, hora in HORARIOS_SORTEOS.items():
+        objetivo = datetime.strptime(hora, "%H:%M")
+        minutos = (objetivo.hour * 60 + objetivo.minute) - (ahora.hour * 60 + ahora.minute)
+        
+        if minutos >= 0:
+            faltantes.append((nombre, minutos))
+
+    faltantes.sort(key=lambda x: x[1])
+
+    for juego, minutos in faltantes[:5]:
+        if minutos <= 30:
+            st.error(f"⚠️ {juego} cierra en {minutos} min")
+        else:
+            st.info(f"{juego} → {minutos} min")
+
+# --- INTERFAZ PRINCIPAL ---
+def main():
+    st.title("SignalMap IA - Control Central")
+    
+    # Columna 1: Radar
+    with st.sidebar:
+        render_radar()
+    
+    # Columna 2: Panel de Captura Dinámica
+    st.header("Entrada de Datos")
+    seleccion = st.selectbox("Seleccionar Sorteo", list(GAME_CONFIG.keys()))
+    
+    # Lógica de Captura Rápida
+    if GAME_CONFIG[seleccion].get("tipo") == "matriz":
+        st.write("Configuración de tablero Gana Gato requerida.")
+    else:
+        cols = st.columns(GAME_CONFIG[seleccion].get("cantidad", 5))
+        datos = [c.number_input(f"N{i+1}", min_value=0, max_value=99) for i, c in enumerate(cols)]
+        if st.button("Guardar Secuencia"):
+            st.success(f"Señal guardada para {seleccion}: {datos}")
+
+if __name__ == "__main__":
+    main()
 
 # ==========================================
 # ESCUDO DE FIREBASE BYPASS PARA GITHUB
