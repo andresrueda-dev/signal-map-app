@@ -8,3 +8,6 @@ pillow
 firebase-admin
 streamlit-authenticator
 pyrebase4
+beautifulsoup4
+requests
+pytz
