@@ -170,17 +170,17 @@ def escanear_lineas_easyocr(imagen_pil, tipo_sorteo):
     return [False, "No se detectó el formato. Intenta otra toma."]
 
 # =====================================================================
-# 3. MOTORES MATEMÁTICOS FRACTALES (GEOMETRÍA INVARIANTE)
+# 3. MOTORES MATEMÁTICOS DE AYER (DINÁMICA ORGÁNICA CON ÍNDICE I)
 # =====================================================================
 def calcular_coordenadas_fractales(nodos_matriz, lista_tipos):
     puntos_x, puntos_y, iteraciones_escape, raw_nodos = [], [], [], []
-    for nodo in nodos_matriz:
+    for i, nodo in enumerate(nodos_matriz):
         if not nodo: nodo = [0]
         pesos = np.arange(1, len(nodo) + 1)
-        hash_base = np.dot(nodo, pesos)
         
-        hash_x = np.sin(hash_base * 0.02) * 1.3
-        hash_y = np.cos(hash_base * 0.02) * 1.3
+        # RESTAURACIÓN CRÍTICA: Regresa el producto dinámico por el índice i que te dio los aciertos ayer
+        hash_x = np.sin(np.sum(nodo) * (i * 0.001)) * 1.2 + np.cos(np.dot(nodo, pesos)) * 0.4
+        hash_y = np.cos(np.sum(nodo) * (i * 0.001)) * 1.2 + np.sin(np.dot(nodo, pesos)) * 0.4
         
         c = complex(hash_x, hash_y)
         z = 0j
@@ -220,10 +220,10 @@ df_analisis = calcular_coordenadas_fractales(list(st.session_state.mapa_nodos), 
 # =====================================================================
 tab_dash, tab_captura, tab_tiros = st.tabs(["📊 Dashboard Global & Constelación", "📸 IA Vision Scanner (EasyOCR)", "🎯 Focos Atractores & Sugerencias"])
 
-# --- PESTAÑA 1: VENTANA DE CONVERGENCIA TOTAL CORREGIDA ---
+# --- PESTAÑA 1: VENTANA DE CONVERGENCIA TOTAL EN VIVO ---
 with tab_dash:
     st.subheader("🎛️ Ventana General de Convergencia Espectral")
-    st.caption("Estructura térmica calculada integrando entradas manuales, automáticas y escaneos ópticos (_OCR).")
+    st.caption("Estructura térmica calculada bajo la calibración original reactivada.")
     
     grid_cols = st.columns(4)
     for index, s_name in enumerate(sorteos_lista):
@@ -240,7 +240,7 @@ with tab_dash:
             st.markdown(f"<div class='cyber-box'><strong>{s_name}</strong><br>Densidad: <strong style='color:#00f5d4;'>{ratio_conv:.1f}%</strong><br><span style='font-size:11px; font-weight:bold;'>{status_lbl}</span></div>", unsafe_allow_html=True)
 
     st.markdown("---")
-    st.subheader("🗺️ Constelación General de Sorteos (Mandelbrot Space — 500 Nodos)")
+    st.subheader("🗺️ Constelación General de Sorteos (Mandelbrot Space — 500 Nodos Orgánicos)")
     fig_points = px.scatter(df_analisis, x='Eje_X', y='Eje_Y', color='Clasificación', size='Tamaño', hover_data={'Vector_Boleto': True, 'Sorteo_Tipo': True, 'Iteraciones': True, 'Eje_X': False, 'Eje_Y': False, 'Tamaño': False}, color_discrete_map={'Escape Rápido': '#3A0CA3', 'Transición': '#4361EE', 'Estable': '#F72585', 'Interior Mandelbrot': '#FFFFFF'})
     fig_points.update_layout(template='plotly_dark', plot_bgcolor='rgba(0,0,0,1)', paper_bgcolor='rgba(0,0,0,1)', height=400)
     st.plotly_chart(fig_points, use_container_width=True)
@@ -268,22 +268,20 @@ with tab_captura:
                 else:
                     st.error(f"❌ {resultado}")
 
-# --- PESTAÑA 3: FOCOS ATRACTORES POR JUEGO ---
+# --- PESTAÑA 3: SUGERENCIAS DE HOY RE-ALINEADAS ---
 with tab_tiros:
-    st.subheader("🎯 Focos Atractores por Coeficiente de Resonancia")
-    st.caption("Sugerencias de alta densidad calculadas usando búsquedas mapeadas:")
-    
-    df_filtrado = df_analisis.sort_values(by='Resonancia_Score', ascending=False)
+    st.subheader("🎯 Focos Atractores Orgánicos de Ayer")
+    st.caption("Extracción directa de los vectores estables según la geometría del mapa original:")
     
     for s_meta in ["CHISPAZO", "TRIS", "MELATE", "REVANCHA", "REVANCHITA", "MELATE RETRO"]:
-        df_s_estables = df_filtrado[(df_filtrado['Sorteo_Tipo'].str.contains(s_meta, case=False, na=False)) & (df_filtrado['Clasificación'] == 'Estable')]
+        df_s_estables = df_analisis[(df_analisis['Sorteo_Tipo'].str.contains(s_meta, case=False, na=False)) & (df_analisis['Clasificación'] == 'Estable')]
         
         if len(df_s_estables) > 0:
             sug_v = df_s_estables.iloc[0]['Vector_Boleto']
         else:
             sug_v = "Calibrando mallas... [Inyecta boletos en la pestaña anterior]"
             
-        with st.status(f"🚀 Línea de Máxima Resonancia para {s_meta}", expanded=True):
+        with st.status(f"🚀 Línea de Resonancia Original para {s_meta}", expanded=True):
             st.code(f"{sug_v}", language="text")
 
 with st.sidebar:
