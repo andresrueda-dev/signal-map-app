@@ -178,7 +178,7 @@ def calcular_coordenadas_fractales(nodos_matriz, lista_tipos):
         if not nodo: nodo = [0]
         pesos = np.arange(1, len(nodo) + 1)
         
-        # RESTAURACIÓN CRÍTICA: Regresa el producto dinámico por el índice i que te dio los aciertos ayer
+        # RESTAURACIÓN: Producto dinámico móvil basado en el índice temporal de ayer
         hash_x = np.sin(np.sum(nodo) * (i * 0.001)) * 1.2 + np.cos(np.dot(nodo, pesos)) * 0.4
         hash_y = np.cos(np.sum(nodo) * (i * 0.001)) * 1.2 + np.sin(np.dot(nodo, pesos)) * 0.4
         
