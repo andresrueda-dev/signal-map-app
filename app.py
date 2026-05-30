@@ -17,13 +17,12 @@ from PIL import Image
 # =====================================================================
 @st.cache_resource
 def inicializar_lector_ocr():
-    """Inicializa el lector en caché de Streamlit para no ralentizar las recargas"""
+    """Inicializa el lector en caché de Streamlit para optimizar memoria en la nube"""
     try:
         import easyocr
-        # Configuramos lectura en español/inglés. GPU=False optimiza para contenedores cloud básicos.
         return easyocr.Reader(['es', 'en'], gpu=False)
     except Exception as e:
-        st.error(f"Error crítico al inicializar la matriz OCR: {e}")
+        st.error(f"Error al inicializar la matriz OCR: {e}")
         return None
 
 reader = inicializar_lector_ocr()
@@ -105,7 +104,7 @@ if not st.session_state.autenticado:
     st.stop()
 
 # =====================================================================
-# 1. ARCHIVO LOCAL CSV Y CONTROL MAESTRO DE PERSISTENCIA ANTI-DUPLICADOS
+# 1. ARCHIVO LOCAL CSV Y CONTROL MAESTRO DE PERSISTENCIA MULTI-SORTEO
 # =====================================================================
 DB_FILE = "historial_calibrado.csv"
 
@@ -131,51 +130,67 @@ def cargar_nodos_desde_csv():
         try:
             df = pd.read_csv(DB_FILE)
             nodos_recuperados = []
-            for comb in df['Combinacion'].tail(500).values:
-                nodos_recuperados.append([int(x) for x in str(comb).split(',')])
-            if len(nodos_recuperados) > 0: return nodos_recuperados
+            tipos_sorteo = []
+            for idx, row in df.tail(500).iterrows():
+                nodos_recuperados.append([int(x) for x in str(row['Combinacion']).split(',')])
+                tipos_sorteo.append(str(row['Sorteo']))
+            if len(nodos_recuperados) > 0: 
+                return nodos_recuperados, tipos_sorteo
         except: pass
     
-    return [[int((np.sin(i * 0.05 + j) * 7) + (np.cos(i * 0.13 + j) * 6) + 14) for j in range(5)] for i in range(500)]
+    # Base por defecto distribuida equitativamente entre familias si no hay CSV previo
+    base_nodos, base_tipos = [], []
+    sorteos_pool = ["TRIS", "CHISPAZO", "MELATE", "MAYOR"]
+    for i in range(500):
+        secuencia = [int((np.sin(i * 0.05 + j) * 7) + (np.cos(i * 0.13 + j) * 6) + 14) for j in range(5)]
+        base_nodos.append(secuencia)
+        base_tipos.append(sorteos_pool[i % len(sorteos_pool)])
+    return base_nodos, base_tipos
 
 # =====================================================================
-# 2. PROCESAMIENTO ÓPTICO AVANZADO CON MOTOR EASYOCR
+# 2. PROCESAMIENTO ÓPTICO AVANZADO CON MOTOR EASYOCR UNIVERSAL
 # =====================================================================
 def escanear_lineas_easyocr(imagen_pil, tipo_sorteo):
     if reader is None:
         return [False, "El motor EasyOCR no se encuentra inicializado."]
     
-    # Transformar la imagen cargada en un formato de array comprensible por el detector de mallas
     img_array = np.array(imagen_pil.convert('RGB'))
-    
-    # Ejecutar el escaneo de texto en un solo paso analítico
     resultados_ocr = reader.readtext(img_array, detail=0)
     lineas_encontradas = []
     
     for texto in resultados_ocr:
-        # Extraemos secuencias numéricas ignorando basura del diseño del boleto
         numeros = [int(n) for n in re.findall(r'\b\d+\b', texto)]
         
-        if tipo_sorteo == "CHISPAZO" and len(numeros) == 5:
-            if all(1 <= n <= 28 for n in numeros):
-                lineas_encontradas.append(sorted(numeros))
+        # Clasificación elástica según la estructura de esferas y sorteo seleccionado
+        if tipo_sorteo in ["CHISPAZO", "MELATE", "REVANCHA", "REVANCHITA", "MELATE RETRO"]:
+            # Para Chispazo busca 5 números (1-28). Para Melate busca 6 números (1-56).
+            longitud_esperada = 5 if tipo_sorteo == "CHISPAZO" else 6
+            limite_superior = 28 if tipo_sorteo == "CHISPAZO" else 56
+            if len(numeros) == longitud_esperada:
+                if all(1 <= n <= limite_superior for n in numeros):
+                    lineas_encontradas.append(sorted(numeros))
         elif tipo_sorteo == "TRIS" and len(numeros) == 5:
             if all(0 <= n <= 9 for n in numeros):
                 lineas_encontradas.append(numeros)
+        elif tipo_sorteo in ["MAYOR", "SUPERIOR", "ZODIACO", "ESPECIAL"]:
+            # Para sorteos tradicionales de billetes, procesa el número largo de 5 o 6 dígitos en lista
+            nums_largos = re.findall(r'\b\d{5,6}\b', texto)
+            for n_l in nums_largos:
+                lineas_encontradas.append([int(d) for d in str(n_l)])
                 
     if len(lineas_encontradas) > 0:
         return [True, lineas_encontradas]
-    return [False, "No se aislaron patrones numéricos correspondientes al sorteo. Asegúrate de encuadrar bien la zona de apuestas."]
+    return [False, "No se aislaron patrones con la densidad exacta de esta estructura. Intenta otra toma."]
 
 # =====================================================================
 # 3. MOTORES MATEMÁTICOS DE PROYECCIÓN GEOMÉTRICA (INVARIANTE)
 # =====================================================================
-def calcular_coordenadas_fractales(nodos_matriz):
+def calcular_coordenadas_fractales(nodos_matriz, lista_tipos):
     puntos_x, puntos_y, iteraciones_escape, raw_nodos = [], [], [], []
-    for i, nodo in enumerate(nodos_matriz):
+    for nodo in nodos_matriz:
         if not nodo: nodo = [0]
         
-        # Invarianza por Producto Punto para fijar la geometría
+        # Invarianza por Producto Punto posicional estricto
         pesos = np.arange(1, len(nodo) + 1)
         hash_base = np.dot(nodo, pesos)
         
@@ -194,7 +209,12 @@ def calcular_coordenadas_fractales(nodos_matriz):
         iteraciones_escape.append(iteracion)
         raw_nodos.append(", ".join(map(str, nodo)))
         
-    df = pd.DataFrame({'Eje_X': puntos_x, 'Eje_Y': puntos_y, 'Iteraciones': iteraciones_escape, 'Vector_Boleto': raw_nodos, 'Tamaño': [7]*len(puntos_x)})
+    df = pd.DataFrame({
+        'Eje_X': puntos_x, 'Eje_Y': puntos_y, 
+        'Iteraciones': iteraciones_escape, 'Vector_Boleto': raw_nodos, 
+        'Sorteo_Tipo': lista_tipos, 'Tamaño': [7]*len(puntos_x)
+    })
+    
     condiciones = [(df['Iteraciones'] <= 50), (df['Iteraciones'] > 50) & (df['Iteraciones'] <= 150), (df['Iteraciones'] > 150) & (df['Iteraciones'] < 250), (df['Iteraciones'] == 250)]
     df['Clasificación'] = np.select(condiciones, ['Escape Rápido', 'Transición', 'Estable', 'Interior Mandelbrot'], default='Transición')
     
@@ -224,6 +244,11 @@ def obtener_ultimo_sorteo_automatico(sorteo_nombre):
                 if contenedor:
                     nums = [int(s) for s in re.findall(r'\b\d+\b', contenedor.text)]
                     return [n for n in nums if 0 <= n <= 9][:5]
+            elif sorteo_nombre in ['melate', 'revancha', 'revanchita']:
+                contenedor = soup.find('div', id=f'div{sorteo_nombre.capitalize()}') or soup.find('div', class_=f'resultado-{sorteo_nombre}')
+                if contenedor:
+                    nums = [int(s) for s in re.findall(r'\b\d+\b', contenedor.text)]
+                    return sorted([n for n in nums if 1 <= n <= 56][:6])
         return None
     except:
         return None
@@ -238,15 +263,18 @@ def verificar_actualizacion_por_horario():
         return False
     except: return False
 
-# Inicialización segura de memoria persistente
+# Inicialización segura de la memoria circular recuperando persistencia
 if "mapa_nodos" not in st.session_state:
     st.session_state.mapa_nodos = deque(maxlen=500)
-    st.session_state.mapa_nodos.extend(cargar_nodos_desde_csv())
+    st.session_state.mapa_tipos = deque(maxlen=500)
+    nods, tps = cargar_nodos_desde_csv()
+    st.session_state.mapa_nodos.extend(nods)
+    st.session_state.mapa_tipos.extend(tps)
 
-df_analisis = calcular_coordenadas_fractales(list(st.session_state.mapa_nodos))
+df_analisis = calcular_coordenadas_fractales(list(st.session_state.mapa_nodos), list(st.session_state.mapa_tipos))
 
 # =====================================================================
-# 4. ENTORNO VISUAL EN PESTAÑAS (UI/UX)
+# 4. ENTORNO VISUAL GENERAL EN PESTAÑAS (UI/UX)
 # =====================================================================
 col_header, col_log = st.columns([6, 1])
 with col_header:
@@ -263,59 +291,68 @@ tab_dash, tab_captura, tab_tiros = st.tabs([
     "🎯 Focos Atractores & Sugerencias"
 ])
 
-# --- PESTAÑA 1: CORE GRÁFICO ---
+# ---------------------------------------------------------------------
+# PESTAÑA 1: VENTANA MAESTRA DE CONVERGENCIA MULTI-SORTEO (SOLICITADA)
+# ---------------------------------------------------------------------
 with tab_dash:
-    st.subheader("📊 Volumen Real Indexado & Matriz Global de Convergencia")
-    c1, c2, c3, c4 = st.columns(4)
-    with c1: st.metric(label="🎲 TOTAL VECTORES RESPALDADOS", value=f"{len(st.session_state.mapa_nodos)} / 500")
-    with c2: st.metric(label="🛰️ INFRAESTRUCTURA", value="EasyOCR Desplegado")
-    with c3: st.metric(label="🪐 PERSISTENCIA CLOUD", value="Espejo CSV Sincronizado")
-    with c4: st.metric(label="📡 LINK SERVIDOR REAL", value=st.session_state.status_servidor)
+    st.subheader("🎛️ Ventana General de Convergencia Espectral")
+    st.caption("Análisis estructural en tiempo real de la densidad de esferas y estabilidad fractal por cada familia de sorteos.")
+    
+    # LISTADO MAESTRO DE CALIBRACIÓN POR SORTEO
+    sorteos_lista = ["TRIS", "CHISPAZO", "MELATE", "REVANCHA", "REVANCHITA", "MAYOR", "SUPERIOR", "ZODIACO"]
+    
+    grid_cols = st.columns(4)
+    for index, s_name in enumerate(sorteos_lista):
+        with grid_cols[index % 4]:
+            # Filtramos el DataFrame para calcular la salud estructural de este sorteo específico
+            df_sorteo_actual = df_analisis[df_analisis['Sorteo_Tipo'].str.contains(s_name, case=False, na=False)]
+            
+            if len(df_sorteo_actual) > 0:
+                estables_count = len(df_sorteo_actual[df_sorteo_actual['Clasificación'] == 'Estable'])
+                ratio_conv = (estables_count / len(df_sorteo_actual)) * 100
+                
+                # Determinación estricta del nivel según la concentración en el mapa
+                if ratio_conv >= 30.0:
+                    status_lbl = "🟢 ALTA CONVERGENCIA (POR SALIR / CALIENTE)"
+                elif ratio_conv >= 15.0:
+                    status_lbl = "🟡 CONVERGENCIA MEDIA (EN TRANSICIÓN)"
+                else:
+                    status_lbl = "🔵 BAJA CONVERGENCIA (DISPERSIÓN)"
+            else:
+                ratio_conv = 0.0
+                status_lbl = "⚪ MONITOR EN ESPERA DE DATOS"
+                
+            st.markdown(f"""
+            <div class='cyber-box' style='border-top: 3px solid #00f5d4;'>
+                <strong style='color:#ffffff; font-size:15px;'>{s_name}</strong><br>
+                <span style='color:gray; font-size:12px;'>Densidad Estructural:</span> <strong style='color:#00f5d4;'>{ratio_conv:.1f}%</strong><br>
+                <span style='font-size:11px; font-weight:bold; color:#ffffff;'>{status_lbl}</span>
+            </div>
+            """, unsafe_allow_html=True)
 
+    # LA CONSTELACIÓN DE PUNTITOS QUE TE ENCANTA
     st.markdown("---")
-    st.subheader("🗺️ Constelación de Sorteos (Geometría Invariante Estable)")
+    st.subheader("🗺️ Constelación General de Sorteos (Geometría Invariante Estable)")
     
     fig_points = px.scatter(
-        df_analisis, x='Eje_X', y='Eje_Y', color='Clasificación', size='Tamaño',
-        hover_data={'Vector_Boleto': True, 'Iteraciones': True, 'Eje_X': False, 'Eje_Y': False, 'Tamaño': False},
+        df_analisis, x='Eje_X', y='Eje_Y', color='Clasificación', size='Tamaño', font_family="monospace",
+        hover_data={'Vector_Boleto': True, 'Sorteo_Tipo': True, 'Iteraciones': True, 'Eje_X': False, 'Eje_Y': False, 'Tamaño': False},
         color_discrete_map={'Escape Rápido': '#3A0CA3', 'Transición': '#4361EE', 'Estable': '#F72585', 'Interior Mandelbrot': '#FFFFFF'}
     )
     fig_points.update_layout(template='plotly_dark', plot_bgcolor='rgba(0,0,0,1)', paper_bgcolor='rgba(0,0,0,1)', height=420)
     st.plotly_chart(fig_points, use_container_width=True)
 
-    st.markdown("---")
-    st.subheader("🎛️ Monitor de Onda-Frecuencia Termodinámica")
-    tab_tris, tab_chisp, tab_mel = st.tabs(["🎲 Frecuencia TRIS", "🚀 Frecuencia CHISPAZO", "🪐 Frecuencia MELATE"])
-    
-    with tab_tris:
-        datos_onda_tris = df_analisis['Iteraciones'].values[-80:] + (np.sin(np.arange(80)) * 15)
-        fig_t = go.Figure(go.Scatter(y=datos_onda_tris, mode='lines', line=dict(color='#00f5d4', width=2)))
-        fig_t.update_layout(template='plotly_dark', plot_bgcolor='rgba(10,14,20,0.4)', paper_bgcolor='rgba(0,0,0,1)', height=180, margin=dict(l=20,r=20,t=10,b=20))
-        st.plotly_chart(fig_t, use_container_width=True)
-        
-    with tab_chisp:
-        datos_onda_chisp = df_analisis['Iteraciones'].values[-80:] * (np.cos(np.arange(80)*0.2) * 0.4 + 1.1)
-        fig_c = go.Figure(go.Scatter(y=datos_onda_chisp, mode='lines', line=dict(color='#f72585', width=2)))
-        fig_c.update_layout(template='plotly_dark', plot_bgcolor='rgba(10,14,20,0.4)', paper_bgcolor='rgba(0,0,0,1)', height=180, margin=dict(l=20,r=20,t=10,b=20))
-        st.plotly_chart(fig_c, use_container_width=True)
-        
-    with tab_mel:
-        datos_onda_mel = np.abs(np.diff(df_analisis['Iteraciones'].values[-81:])) * 2.5
-        fig_m = go.Figure(go.Scatter(y=datos_onda_mel, mode='lines', line=dict(color='#4361EE', width=2)))
-        fig_m.update_layout(template='plotly_dark', plot_bgcolor='rgba(10,14,20,0.4)', paper_bgcolor='rgba(0,0,0,1)', height=180, margin=dict(l=20,r=20,t=10,b=20))
-        st.plotly_chart(fig_m, use_container_width=True)
-
 # ---------------------------------------------------------------------
-# PESTAÑA 2: IA VISION SCANNER CON INFRAESTRUCTURA EASYOCR
+# PESTAÑA 2: IA VISION SCANNER (SOPORTE TOTAL MULTI-SORTEO)
 # ---------------------------------------------------------------------
 with tab_captura:
     st.subheader("📸 IA Vision Scanner — Análisis Espectral de Mallas de Juego")
-    st.caption("Captura de forma óptica el boleto impreso para inyectar de forma directa todas las jugadas activas.")
+    st.caption("Captura de forma óptica el boleto impreso de cualquier familia para inyectar y calibrar el sistema.")
     
     col_v1, col_v2 = st.columns([1.5, 1])
     
     with col_v1:
-        tipo_sorteo_scan = st.selectbox("1. Define la estructura analítica del boleto:", ["CHISPAZO", "TRIS"])
+        tipo_sorteo_scan = st.selectbox("1. Define la estructura analítica del boleto:", sorteos_lista)
         archivo_boleto = st.file_uploader("2. Cargar imagen de la jugada (Sube archivo o toma foto):", type=["jpg", "jpeg", "png"])
         
         if archivo_boleto is not None:
@@ -331,17 +368,18 @@ with tab_captura:
                         duplicados, nuevos = 0, 0
                         
                         for linea in resultado:
-                            fue_guardado = guardar_nodo_en_csv(linea, f"{tipo_sorteo_scan}_OCR")
+                            # Guardamos en CSV usando una etiqueta limpia para el escáner
+                            tag_final = f"{tipo_sorteo_scan}_OCR"
+                            fue_guardado = guardar_nodo_en_csv(linea, tag_final)
                             if fue_guardado:
                                 st.session_state.mapa_nodos.append(linea)
+                                st.session_state.mapa_tipos.append(tag_final)
                                 nuevos += 1
                             else:
                                 duplicados += 1
                                 
-                        if nuevos > 0: 
-                            st.write(f"📥 **Se inyectaron {nuevos} vectores limpios a la Constelación.**")
-                        if duplicados > 0: 
-                            st.info(f"📋 Se omitieron {duplicados} líneas que ya formaban parte de la persistencia local.")
+                        if nuevos > 0: st.write(f"📥 **Se inyectaron {nuevos} vectores limpios a la Constelación.**")
+                        if duplicados > 0: st.info(f"📋 Se omitieron {duplicados} líneas que ya formaban parte de la persistencia local.")
                         st.rerun()
                     else:
                         st.error(f"❌ Falla en la lectura: {resultado}")
@@ -349,18 +387,19 @@ with tab_captura:
     with col_v2:
         st.markdown("""
         <div style='background-color: #0d1117; border: 1px solid #21262d; border-radius: 8px; padding: 20px;'>
-            <h4 style='color: #00f5d4; margin-top:0;'>📋 Protocolo de Captura Óptica</h4>
-            <p style='color: #adbac7; font-size: 13px;'>El motor calcula de forma nativa la cantidad de líneas jugadas basándose en mallas puras de 5 números.</p>
+            <h4 style='color: #00f5d4; margin-top:0;'>📋 Protocolo de Captura Óptica Universal</h4>
+            <p style='color: #adbac7; font-size: 13px;'>El motor calcula la estructura de forma nativa:</p>
             <ul style='color: #adbac7; font-size: 13px; padding-left:20px;'>
-                <li>Busca un encuadre vertical y recto del boleto.</li>
-                <li>Los datos duplicados en el mismo boleto o sorteos previos se filtran en automático para mantener la pureza geométrica del fractal.</li>
+                <li><b>Tris / Chispazo:</b> Mallas puras de 5 números por renglón.</li>
+                <li><b>Melate / Revancha:</b> Bloques cerrados de 6 números.</li>
+                <li><b>Sorteos Tradicionales:</b> Lee los números de 5 o 6 dígitos del Premio Mayor del billete y los convierte en vector.</li>
             </ul>
         </div>
         """, unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("### 🤖 Escáner Automatizado por Servidor (Web Scraper)")
-    sorteo_auto = st.selectbox("Canal Remoto de Pronósticos Oficiales:", ["TRIS", "CHISPAZO"])
+    sorteo_auto = st.selectbox("Canal Remoto de Pronósticos Oficiales:", ["TRIS", "CHISPAZO", "MELATE", "REVANCHA", "REVANCHITA"])
     if st.button("Lanzar Escáner de Red ⚡", use_container_width=True):
         with st.spinner("Conectando con servidores centrales..."):
             datos = obtener_ultimo_sorteo_automatico(sorteo_auto.lower())
@@ -368,6 +407,7 @@ with tab_captura:
                 es_nuevo = guardar_nodo_en_csv(datos, sorteo_auto.upper())
                 if es_nuevo:
                     st.session_state.mapa_nodos.append(datos)
+                    st.session_state.mapa_tipos.append(sorteo_auto.upper())
                     st.success(f"✅ Sincronización Exitosa: Nodo remoto indexado: {datos}")
                     st.rerun()
                 else: st.info(f"📋 Sorteo al día: El resultado [{datos}] ya existía en el historial.")
@@ -378,14 +418,16 @@ with tab_captura:
 # ---------------------------------------------------------------------
 with tab_tiros:
     st.subheader("🎯 Focos Atractores Filtrados por Coeficiente de Resonancia")
+    
     df_filtrado = df_analisis.sort_values(by='Resonancia_Score', ascending=False)
     df_estables = df_filtrado[df_filtrado['Clasificación'] == 'Estable']
     sug_1 = df_estables.iloc[0]['Vector_Boleto'] if len(df_estables) >= 1 else "01, 08, 10, 16, 26"
     sug_2 = df_estables.iloc[1]['Vector_Boleto'] if len(df_estables) >= 2 else "03, 04, 08, 12, 18"
     
-    with st.status("🚀 Ver Sugerencia ALFA para CHISPAZO (Foco Atractor Central)", expanded=True):
+    with st.status("🚀 Ver Sugerencia ALFA (Foco Atractor Central Máximo)", expanded=True):
         st.code(f"{sug_1}", language="text")
-    with st.status("🎲 Ver Sugerencia BETA para TRIS (Eje Fractal de Resonancia)", expanded=True):
+        st.caption("Combinación recomendada por persistencia de mallas estables en la constelación.")
+    with st.status("🎲 Ver Sugerencia BETA (Eje Fractal de Resonancia Secundaria)", expanded=True):
         st.code(f"{sug_2}", language="text")
 
 # --- BARRA LATERAL TÉCNICA ---
@@ -396,4 +438,5 @@ with st.sidebar:
     if st.button("🔄 Reseteo Maestro (Hard Reset)"):
         if os.path.exists(DB_FILE): os.remove(DB_FILE)
         st.session_state.mapa_nodos.clear()
+        st.session_state.mapa_tipos.clear()
         st.rerun()
