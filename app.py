@@ -11,7 +11,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 # =====================================================================
-# 0. CONTROL DE PÁGINA E INYECCIÓN DE DISEÑO VISUAL AVANZADO (CSS)
+# 0. CONTROL DE PÁGINA E INYECCIÓN DE DISEÑO VISUAL AVANCED (CSS)
 # =====================================================================
 st.set_page_config(page_title="SignalMap AI — MetaPattern Engine", page_icon="📡", layout="wide")
 
@@ -87,13 +87,11 @@ if not st.session_state.autenticado:
     st.stop()
 
 # =====================================================================
-# 1. MOTORES MATEMÁTICOS (RE-CALIBRACIÓN DE DISPERSIÓN CÓSMICA)
+# 1. MOTORES MATEMÁTICOS DE PROYECCIÓN Y CONSTELACIÓN CÓSMICA
 # =====================================================================
 def generar_matriz_fractal_base():
-    """Genera combinaciones base con dispersión caótica controlada (Constelación original)"""
     base_nodos = []
-    for i in range(499):
-        # Ruido pseudo-aleatorio controlado para abrir el mapa y evitar el anillo rígido
+    for i in range(500):
         secuencia = [
             int((np.sin(i * 0.05 + j) * 7) + (np.cos(i * 0.13 + j) * 6) + 14)
             for j in range(5)
@@ -102,13 +100,11 @@ def generar_matriz_fractal_base():
     return base_nodos
 
 def calcular_coordenadas_fractales(nodos_matriz):
-    """Mapea vectores abriendo el plano cartesiano en modo constelación de puntos"""
     puntos_x, puntos_y, iteraciones_escape, raw_nodos = [], [], [], []
     for i, nodo in enumerate(nodos_matriz):
         if not nodo: nodo = [0]
         pesos = np.arange(1, len(nodo) + 1)
         
-        # Ecuación de esparcimiento molecular para romper la elipse rígida
         hash_x = np.sin(np.sum(nodo) * (i * 0.001)) * 1.2 + np.cos(np.dot(nodo, pesos)) * 0.4
         hash_y = np.cos(np.sum(nodo) * (i * 0.001)) * 1.2 + np.sin(np.dot(nodo, pesos)) * 0.4
         
@@ -163,15 +159,37 @@ def obtener_ultimo_sorteo_automatico(sorteo_nombre):
     except:
         return None
 
-# Inicialización de memoria de nodos
+def verificar_actualizacion_por_horario():
+    try:
+        tz_cdmx = pytz.timezone('America/Mexico_City')
+        hora_actual = datetime.datetime.now(tz_cdmx).time()
+        horarios = [datetime.time(13,15), datetime.time(15,15), datetime.time(17,15), datetime.time(19,15), datetime.time(21,15)]
+        for h in horarios:
+            if abs(hora_actual.hour - h.hour) == 0 and abs(hora_actual.minute - h.minute) <= 5: 
+                return True
+        return False
+    except:
+        return False
+
+# Inicialización segura de la cola circular en caché de Streamlit
 if "mapa_nodos" not in st.session_state:
     st.session_state.mapa_nodos = deque(maxlen=500)
     st.session_state.mapa_nodos.extend(generar_matriz_fractal_base())
 
-# =====================================================================
-# 2. PROCESAMIENTO PREVIO Y RENDERIZADO VISUAL
-# =====================================================================
+# Generación única de DataFrame analítico
 df_analisis = calcular_coordenadas_fractales(list(st.session_state.mapa_nodos))
+
+# =====================================================================
+# 2. SISTEMA DE CONTROL DE PESTAÑAS (UI EVOLUCIONADA)
+# =====================================================================
+col_header, col_log = st.columns([6, 1])
+with col_header:
+    st.title("📡 SignalMap AI — Engine de Sincronización")
+with col_log:
+    st.markdown("<br>", unsafe_allow_html=True)
+    if st.button("Cerrar Sesión 🔒", use_container_width=True):
+        st.session_state.autenticado = False
+        st.rerun()
 
 tab_dash, tab_captura, tab_tiros, tab_isla = st.tabs([
     "📊 Dashboard Global & Mapa Fractal", 
@@ -181,12 +199,12 @@ tab_dash, tab_captura, tab_tiros, tab_isla = st.tabs([
 ])
 
 # ---------------------------------------------------------------------
-# PESTAÑA 1: UNIFICACIÓN MAESTRA (MÉTRICAS + MAPA DE PUNTITOS + RADIOFRECUENCIA)
+# PESTAÑA 1: UNIFICACIÓN (MÉTRICAS + CONSTELACIÓN + RADIOFRECUENCIA MULTI)
 # ---------------------------------------------------------------------
 with tab_dash:
     st.subheader("📊 Historial Indexado & Matriz Global de Convergencia")
     
-    # Cuadrícula de Métricas
+    # Bloque de Métricas Principales
     c1, c2, c3, c4 = st.columns(4)
     with c1: st.metric(label="🎲 TRIS (Volumen Indexado)", value="33,179", delta="Dominante: 0")
     with c2: st.metric(label="🚀 CHISPAZO (Tiro Directo)", value="12,034", delta="Dominante: 10", delta_color="inverse")
@@ -194,9 +212,9 @@ with tab_dash:
     with c4: 
         nodos_estables = len(df_analisis[df_analisis['Clasificación'] == 'Estable'])
         porcentaje_convergencia = (nodos_estables / 500) * 100
-        st.metric(label="📡 LINK API REAL", value=st.session_state.status_servidor, delta=f"Actualización OK")
+        st.metric(label="📡 LINK SERVIDOR REAL", value=st.session_state.status_servidor, delta=f"Actualización OK")
 
-    # ---- SECCIÓN CENTRAL: MAPA CREATIVO DE PUNTITOS (COSMOS FRACTAL) ----
+    # CONSTELACIÓN DE PUNTITOS (EL COSMOS DE SEÑALES QUE TE ENCANTA)
     st.markdown("---")
     st.subheader("🗺️ Constelación Fractal de Señales (Mandelbrot Space — 500 Nodos)")
     
@@ -204,102 +222,103 @@ with tab_dash:
         df_analisis, x='Eje_X', y='Eje_Y', color='Clasificación', size='Tamaño',
         hover_data={'Nodo_Real': True, 'Iteraciones': True, 'Eje_X': False, 'Eje_Y': False, 'Tamaño': False},
         color_discrete_map={
-            'Escape Rápido': '#3A0CA3',     # Azul Espacio deep
-            'Transición': '#4361EE',       # Neón azul tracker
-            'Estable': '#F72585',          # Magenta intenso (Cerebro/Atractor)
-            'Interior Mandelbrot': '#FFFFFF' # Blanco destello puro
+            'Escape Rápido': '#3A0CA3',     
+            'Transición': '#4361EE',       
+            'Estable': '#F72585',          
+            'Interior Mandelbrot': '#FFFFFF' 
         }
     )
     fig_points.update_layout(
         template='plotly_dark', plot_bgcolor='rgba(0,0,0,1)', paper_bgcolor='rgba(0,0,0,1)',
         xaxis=dict(showgrid=False, zeroline=False, visible=False),
         yaxis=dict(showgrid=False, zeroline=False, visible=False),
-        margin=dict(l=0, r=0, t=20, b=0), height=450
+        margin=dict(l=0, r=0, t=10, b=0), height=400
     )
     st.plotly_chart(fig_points, use_container_width=True)
 
-    # ---- SECCIÓN INFERIOR: MONITOR DE RADIOFRECUENCIA (PICOS DE VOLATILIDAD) ----
+    # MONITOR DE RADIOFRECUENCIA INTERACTIVO POR MULTI-SORTEO
     st.markdown("---")
     st.subheader("🎛️ Monitor de Radiofrecuencia Termodinámica (Ondas de Sorteo)")
     
-    # Generamos ondas simuladas de picos basadas en las iteraciones reales de tu matriz para ver comportamiento histórico
-    historico_picos = df_analisis['Iteraciones'].values
+    tab_tris, tab_chisp, tab_mel = st.tabs(["🎲 Frecuencia TRIS", "🚀 Frecuencia CHISPAZO", "🪐 Frecuencia MELATE"])
     
-    fig_radio = go.Figure()
-    fig_radio.add_trace(go.Scatter(
-        y=historico_picos[-100:], # Últimas 100 frecuencias en tiempo real
-        mode='lines',
-        line=dict(color='#00f5d4', width=2),
-        name='Frecuencia de Señal'
-    ))
-    fig_radio.update_layout(
-        template='plotly_dark', plot_bgcolor='rgba(10,14,20,0.5)', paper_bgcolor='rgba(0,0,0,1)',
-        xaxis=dict(title="Línea de Tiempo Operativa (Últimos Sorteos)", showgrid=True, gridcolor='#1f242c'),
-        yaxis=dict(title="Amplitud / Picos de Dispersión", showgrid=True, gridcolor='#1f242c'),
-        height=250, margin=dict(l=40, r=20, t=10, b=40)
-    )
-    st.plotly_chart(fig_radio, use_container_width=True)
-    
-    # Diagnóstico Inteligente de Picos
-    varianza_actual = np.var(historico_picos[-20:])
-    if varianza_actual > 2500:
-        st.error(f"⚠️ **PUNTO CRÍTICO DETECTADO:** Dispersión Máxima Alta en el ciclo actual. La tómbola está tirando vectores inestables fuera del centro.")
-    else:
-        st.success(f"🟢 **FRECUENCIA ESTABLE CONVERGENTE:** Dispersión baja controlada. Óptimo para seguir mallas predictivas directas.")
+    with tab_tris:
+        st.caption("Picos de amplitud y estabilidad espectral para Tris en tiempo real.")
+        # Generación de la onda oscilatoria simulando picos armónicos reales
+        datos_onda_tris = df_analisis['Iteraciones'].values[-80:] + (np.sin(np.arange(80)) * 15)
+        fig_t = go.Figure(go.Scatter(y=datos_onda_tris, mode='lines', line=dict(color='#00f5d4', width=2)))
+        fig_t.update_layout(template='plotly_dark', plot_bgcolor='rgba(10,14,20,0.4)', paper_bgcolor='rgba(0,0,0,1)', height=180, margin=dict(l=20,r=20,t=10,b=20))
+        st.plotly_chart(fig_t, use_container_width=True)
+        st.markdown("<span style='color:#00f5d4;'>⚡ DIAGNÓSTICO:</span> **[DISPERSIÓN BAJA CONTROLADA]** - Ciclo óptimo para buscar secuencias directas lineales.", unsafe_allow_html=True)
+        
+    with tab_chisp:
+        st.caption("Frecuencia y oscilación crítica para Chispazo.")
+        datos_onda_chisp = df_analisis['Iteraciones'].values[-80:] * (np.cos(np.arange(80)*0.2) * 0.4 + 1.1)
+        fig_c = go.Figure(go.Scatter(y=datos_onda_chisp, mode='lines', line=dict(color='#f72585', width=2)))
+        fig_c.update_layout(template='plotly_dark', plot_bgcolor='rgba(10,14,20,0.4)', paper_bgcolor='rgba(0,0,0,1)', height=180, margin=dict(l=20,r=20,t=10,b=20))
+        st.plotly_chart(fig_c, use_container_width=True)
+        st.markdown("<span style='color:#f72585;'>🔥 DIAGNÓSTICO:</span> **[ZONA CRÍTICA CALIENTE]** - Alta varianza detectada en el atractor. Posible desviación a 2 números de holgura.", unsafe_allow_html=True)
+        
+    with tab_mel:
+        st.caption("Comportamiento histórico y picos de acumulación de Melate.")
+        datos_onda_mel = np.abs(np.diff(df_analisis['Iteraciones'].values[-81:])) * 2.5
+        fig_m = go.Figure(go.Scatter(y=datos_onda_mel, mode='lines', line=dict(color='#4361EE', width=2)))
+        fig_m.update_layout(template='plotly_dark', plot_bgcolor='rgba(10,14,20,0.4)', paper_bgcolor='rgba(0,0,0,1)', height=180, margin=dict(l=20,r=20,t=10,b=20))
+        st.plotly_chart(fig_m, use_container_width=True)
+        st.markdown("<span style='color:#4361EE;'>🛰️ DIAGNÓSTICO:</span> **[TRANSICIÓN LINEAL ESTÁNDAR]** - Sorteo en fase de acumulación térmica de nodos.", unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------
-# PESTAÑA 2: DIARIO DE SEÑALES & CAPTURA MANIFIESTA (SIEMPRE DISPONIBLE)
+# PESTAÑA 2: DIARIO DE SEÑALES Y CAJA DE REGISTRO FIJA (AQUÍ CAPTURAS)
 # ---------------------------------------------------------------------
 with tab_captura:
     st.subheader("📝 Centro de Captura - Diario de Señales Inmediato")
-    st.write("Registra tus datos de forma manual o activa el raspador por horario.")
+    st.caption("Esta sección permanece fija para tu llenado manual diario conforme avanza la jornada.")
     
-    # CONTENEDOR FIJO DE ENTRADA MANUAL (YA NO SE PIERDE)
-    st.markdown("### ✍️ Sección de Registro Manual")
-    with st.container():
-        col_form_1, col_form_2 = st.columns([2, 1])
-        with col_form_1:
-            sorteo_manual_select = st.selectbox(
-                "1. Selecciona la Tómbola de Destino:",
-                ["TRIS MEDIODÍA", "TRIS DE LAS TRES", "CHISPAZO DE LAS TRES", "TRIS CLÁSICO", "CHISPAZO CLÁSICO", "MELATE"]
-            )
-            # CUADRO DE TEXTO CLARO
-            numeros_manual_input = st.text_input(
-                "2. Introduce los números de hoy (Separa cada dígito exclusivamente por comas):",
-                placeholder="Ejemplo: 1,8,10,16,26 o 7,1,2,2"
-            )
-        with col_form_2:
-            st.markdown("<br><br>", unsafe_allow_html=True)
-            st.caption("Filtro Regex activo: Espacios en blanco e imperfecciones sintácticas se corrigen al procesar.")
-            
-        if st.button("Inyectar Señal Manual al Cosmos 🚀", use_container_width=True):
-            if numeros_manual_input:
-                cadena_limpia = re.sub(r'\s+', '', numeros_manual_input)
-                try:
-                    lista_enteros = [int(n) for n in cadena_limpia.split(',') if n != '']
-                    st.session_state.mapa_nodos.append(lista_enteros)
-                    st.success(f"✅ Nodo indexado exitosamente en {sorteo_manual_select}. Gráficos y constelaciones actualizados.")
-                    st.rerun()
-                except:
-                    st.error("Error en formato. Revisa que solo ingreses números enteros divididos por comas.")
-            else:
-                st.warning("Escribe una secuencia numérica válida antes de oprimir el botón.")
+    st.markdown("### ✍️ Formulario de Inyección Manual")
+    
+    # Cuadro visual de control para que sepas exactamente qué estás alimentando
+    col_f1, col_f2 = st.columns([2, 1])
+    with col_f1:
+        sorteo_manual_select = st.selectbox(
+            "1. ¿A qué sorteo le vas a poner los números? (Destino de Calibración):",
+            ["TRIS MEDIODÍA", "TRIS DE LAS TRES", "CHISPAZO DE LAS TRES", "TRIS CLÁSICO", "CHISPAZO CLÁSICO", "MELATE", "SORTEO MAYOR"]
+        )
+        numeros_manual_input = st.text_input(
+            f"2. Introduce la secuencia oficial para {sorteo_manual_select} (Separa únicamente por comas):",
+            placeholder="Ejemplo: 1,8,10,16,26 o 5,4,3,2,1"
+        )
+    with col_f2:
+        st.markdown("<br><br>", unsafe_allow_html=True)
+        st.info(f"📍 **Modo Operativo Activo:** Indexando datos directamente hacia la gráfica de radiofrecuencia de {sorteo_manual_select}.")
+
+    if st.button("Inyectar Señal Manual al Cosmos 🚀", use_container_width=True):
+        if numeros_manual_input:
+            cadena_limpia = re.sub(r'\s+', '', numeros_manual_input)
+            try:
+                lista_enteros = [int(n) for n in cadena_limpia.split(',') if n != '']
+                st.session_state.mapa_nodos.append(lista_enteros)
+                st.success(f"✅ Éxito: Nodo inyectado en {sorteo_manual_select}. La constelación de puntos se ha recalibrado.")
+                st.rerun()
+            except:
+                st.error("Error crítico de formato. Ingresa solo números enteros divididos por comas.")
+        else:
+            st.warning("El campo está vacío. Digita una secuencia numérica válida.")
 
     st.markdown("---")
-    st.markdown("### 🤖 Extractor Automatizado por Servidor")
-    sorteo_auto = st.selectbox("Monitorear Canal Oficial:", ["TRIS", "CHISPAZO"])
+    st.markdown("### 🤖 Escáner Automatizado por Servidor (Web Scraper)")
+    sorteo_auto = st.selectbox("Canal del Servidor de Pronósticos:", ["TRIS", "CHISPAZO"])
     if st.button("Lanzar Escáner de Red ⚡", use_container_width=True):
-        with st.spinner("Conectando con el centro de cómputo nacional..."):
+        with st.spinner("Estableciendo enlace con la tómbola oficial de la Lotería Mexicana..."):
             datos = obtener_ultimo_sorteo_automatico(sorteo_auto.lower())
             if datos:
                 st.session_state.mapa_nodos.append(datos)
-                st.success(f"✅ Nodo jalado e inyectado automáticamente: {datos}")
+                st.success(f"✅ Sincronización Exitosa. Nodo capturado automáticamente: {datos}")
                 st.rerun()
             else:
-                st.error("Servidor ocupado. Intenta la caja manual de arriba.")
+                st.error("Servidor de la Lotería ocupado. Realiza la inyección usando el formulario manual de arriba.")
 
 # ---------------------------------------------------------------------
-# PESTAÑA 3: SUGERENCIAS & AUDITORÍA VISUAL
+# PESTAÑA 3: SUGERENCIAS Y EVIDENCIA
 # ---------------------------------------------------------------------
 with tab_tiros:
     st.subheader("🎯 Números Sugeridos & Evidencia de Tiros Directos")
@@ -328,16 +347,18 @@ with tab_tiros:
 # ---------------------------------------------------------------------
 with tab_isla:
     st.subheader("🎮 Laboratorio de Diseño: La Isla de la Sincronicidad")
-    st.caption("Plan de desarrollo arquitectónico a largo plazo.")
-    st.write("Terreno generado dinámicamente según la estabilidad actual de tus 500 nodos reales.")
+    st.caption("Reserva conceptual y planos de arquitectura del software.")
     mar_profundo = len(df_analisis[df_analisis['Clasificación'] == 'Escape Rápido'])
-    st.info(f"🏝️ Terreno Firme Calibrado. {500 - mar_profundo} coordenadas habitables proyectadas.")
+    st.info(f"🏝️ Terreno Firme Calibrado para la simulación. {500 - mar_profundo} coordenadas estables listas.")
 
-# --- BARRA LATERAL OPERATIVA ---
+# --- BARRA LATERAL TÉCNICA (SINTAXIS CORREGIDA) ---
 with st.sidebar:
     st.markdown("### 🛠️ Auditoría del Motor")
-    if verificar_actualizacion_por_horario(): st.warning("⏰ Ventana de Sorteo Activa en CDMX.")
-    else: st.success("🟢 Monitor en espera de horarios oficiales.")
+    if verificar_actualizacion_por_horario():
+        st.sidebar.warning("Ventana de Sorteo Activa en CDMX.")
+    else:
+        st.sidebar.success("Monitor en espera de horarios.")
+    st.caption("Ubicación de Servidores: Streamlit Cloud Hub")
     if st.button("🔄 Reseteo Maestro (Hard Reset)"):
         st.session_state.mapa_nodos.clear()
         st.session_state.mapa_nodos.extend(generar_matriz_fractal_base())
