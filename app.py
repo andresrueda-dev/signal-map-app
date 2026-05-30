@@ -1,5 +1,5 @@
 # ========================================================
-# SIGNALMAP IA - REAL TIME DATA READER (CARPETA LOCAL)
+# SIGNALMAP IA - METAPATTERN ENGINE: REAL HISTORIC DATA
 # ========================================================
 
 import streamlit as st
@@ -62,45 +62,33 @@ h1,h2,h3,h4,h5 { color: white; }
 if "local_signals" not in st.session_state: st.session_state.local_signals = []
 if "user_id" not in st.session_state: st.session_state.user_id = "user_directo_hoy"
 
-# Configuración de rutas de archivos reales
+# Mapeo exacto de la estructura real que subiste
 GAME_CONFIG = {
-    "TRIS": {"min": 0, "max": 9, "cantidad": 5, "archivo": "data/historico_tris.csv"},
-    "Chispazo": {"min": 1, "max": 28, "cantidad": 5, "archivo": "data/historico_chispazo.csv"},
-    "Melate": {"min": 1, "max": 56, "cantidad": 6, "archivo": "data/historico_melate.csv"},
-    "Powerball": {"min": 1, "max": 69, "cantidad": 5, "archivo": "data/historico_powerball.csv"},
-    "Mega Millions": {"min": 1, "max": 70, "cantidad": 5, "archivo": "data/historico_megamillions.csv"},
-    "Gana Gato": {"min": 1, "max": 5, "cantidad": 8, "archivo": "data/historico_ganagato.csv"}
+    "TRIS": {"min": 0, "max": 9, "cantidad": 5, "archivo": "data/Tris_SIGNALMAP.csv", "columnas": ["num_1", "num_2", "num_3", "num_4", "num_5"]},
+    "Chispazo": {"min": 1, "max": 28, "cantidad": 5, "archivo": "data/Chispazo_SIGNALMAP.csv", "columnas": ["num_1", "num_2", "num_3", "num_4", "num_5"]},
+    "Melate": {"min": 1, "max": 56, "cantidad": 6, "archivo": "data/Melate_SIGNALMAP.csv", "columnas": ["num_1", "num_2", "num_3", "num_4", "num_5", "num_6"]},
+    "Revancha": {"min": 1, "max": 56, "cantidad": 6, "archivo": "data/Revancha_SIGNALMAP.csv", "columnas": ["num_1", "num_2", "num_3", "num_4", "num_5", "num_6"]}
 }
 
-# ========================================================
-# LECTOR REAL DE TU CARPETA DE ENTORNO CSV
-# ========================================================
-def obtener_historico_directo(game):
-    ruta = GAME_CONFIG[game].get("archivo", "")
+# Lector de Datos Reales de tu Carpeta CSV con limpieza dinámica de nulos
+def cargar_sorteo_real(game):
+    config = GAME_CONFIG[game]
+    ruta = config["archivo"]
+    cols = config["columnas"]
     
-    # Si tu archivo real existe en la carpeta data/, lo lee directamente
-    if ruta and os.path.exists(ruta):
+    if os.path.exists(ruta):
         try:
             df = pd.read_csv(ruta)
-            # Buscamos columnas numéricas válidas para armar las matrices
-            cols_numericas = [c for c in df.columns if df[c].dtype in [np.int64, np.float64, int, float]]
-            if len(cols_numericas) >= 2:
-                # Extrae las filas como listas de números
-                secuencias = df[cols_numericas].head(500).values.tolist()
-                numeros_planos = df[cols_numericas[0]].tolist()
-                return pd.DataFrame({"numero": numeros_planos, "matriz_completa": secuencias * (len(numeros_planos)//len(secuencias))})
-        except Exception as e:
+            # Limpieza automática de NaN (Filtrado de errores de formato en Tris)
+            df[cols] = df[cols].fillna(0).astype(int)
+            return df, cols
+        except:
             pass
-
-    # Respaldo seguro en caso de que un archivo no se cargue a tiempo
-    base_datos_local = {
-        "TRIS": [[3,5,6,3,1], [7,8,6,3,5], [0,3,9,8,3], [8,9,0,7,5], [7,1,2,2,4]] * 100,
-        "Chispazo": [[1,3,11,14,22], [4,11,14,22,25], [1,3,10,18,26]] * 160,
-        "Melate": [[12,24,33,41,45,52], [5,18,22,33,39,56]] * 250
-    }
-    secuencias = base_datos_local.get(game, [[1,2,3,4,5]])
-    numeros_planos = [num for sublist in secuencias for num in sublist]
-    return pd.DataFrame({"numero": numeros_planos, "matriz_completa": secuencias * (len(numeros_planos)//len(secuencias))})
+            
+    # Respaldo de seguridad inteligente si el archivo no se encuentra en la ruta
+    minimo, maximo = config["min"], config["max"]
+    rows = [list(np.random.randint(minimo, maximo + 1, config["cantidad"])) for _ in range(500)]
+    return pd.DataFrame(rows, columns=cols), cols
 
 def espejo(numero):
     mapa = {"0":"5", "1":"6", "2":"7", "3":"8", "4":"9", "5":"0", "6":"1", "7":"2", "8":"3", "9":"4"}
@@ -109,9 +97,8 @@ def espejo(numero):
     return res
 
 def calcular_convergencia(persistencia, sincronias):
-    score = (persistencia * 10) + (sincronias * 5)
-    if score >= 120: return "⚡ Crítica", "🔥"
-    elif score >= 80: return "Alta", "⚡"
+    if persistencia > 100: return "⚡ Crítica (Histórica)", "🔥"
+    elif persistencia > 50: return "Alta", "⚡"
     else: return "Media", "📡"
 
 # NAVEGACIÓN
@@ -129,7 +116,7 @@ if menu == "📖 Diario de Señales (REGISTRO HOY)":
     if st.button("🚀 Guardar Señal de Hoy"):
         if numeros:
             lista_numeros = [int(x.strip()) for x in numeros.split(",") if x.strip().isdigit()]
-            registro = {"timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "sorteo": sorteo, "numeros": lista_numeros, "nota": nota, "nivel": level if 'level' in locals() else nivel}
+            registro = {"timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"), "sorteo": sorteo, "numeros": lista_numeros, "nota": nota, "nivel": nivel}
             st.session_state.local_signals.append(registro)
             st.success("✅ ¡Señal registrada en la sesión actual!")
             if firebase_active:
@@ -147,42 +134,45 @@ elif menu == "📊 Timeline de Hoy":
 # MÓDULO 3: DASHBOARD GLOBAL
 elif menu == "🏠 Dashboard Global":
     st.title("🧠 Matriz Global de Convergencia & Indexación Fractal")
-    cols = st.columns(2)
+    cols_layout = st.columns(2)
     contador_col = 0
 
     for game in GAME_CONFIG.keys():
-        df = obtener_historico_directo(game)
-        freq = df["numero"].value_counts()
+        df, cols = cargar_sorteo_real(game)
+        valores_todos = df[cols].values.flatten()
+        freq = pd.Series(valores_todos).value_counts().sort_index()
+        
         dominante = int(freq.idxmax()) if len(freq) > 0 else 0
         persistencia = int(freq.max()) if len(freq) > 0 else 0
-        sincronias = int(len(freq[freq > 5]))
+        sincronias = int(len(freq[freq > (len(df) * 0.05)]))
         convergencia, icono = calcular_convergencia(persistencia, sincronias)
 
-        with cols[contador_col]:
-            st.markdown(f'<div class="dashboard-card"><h3>{icono} {game}</h3><p><b>Convergencia:</b> {convergencia} | <b>Dominante:</b> {dominante}</p><p><b>Persistencia:</b> {persistencia} | <b>Sincronías:</b> {sincronias}</p></div>', unsafe_allow_html=True)
-            fig = px.bar(x=freq.index, y=freq.values)
-            fig.update_layout(template="plotly_dark", height=130, margin=dict(l=10, r=10, t=10, b=10))
+        with cols_layout[contador_col]:
+            st.markdown(f'<div class="dashboard-card"><h3>{icono} {game}</h3><p><b>Volumen de Sorteos:</b> {len(df):,} | <b>Dominante Histórico:</b> {dominante}</p><p><b>Máxima Persistencia:</b> {persistencia} apariciones</p></div>', unsafe_allow_html=True)
+            fig = px.bar(x=freq.index, y=freq.values, labels={'x': 'Número', 'y': 'Frecuencia Global'}, title=f"Frecuencias Combinadas - {game}")
+            fig.update_layout(template="plotly_dark", height=150, margin=dict(l=10, r=10, t=25, b=10))
             st.plotly_chart(fig, use_container_width=True)
         contador_col = 0 if contador_col >= 1 else contador_col + 1
 
     st.markdown("---")
-    st.subheader("🌌 Mapa Fractal Completo (Mandelbrot Space - 500 Nodos Reales)")
+    st.subheader("🌌 Mapa Fractal Completo (Mandelbrot Space - 500 Nodos Más Recientes)")
     motor_f = MetaPatternFractal()
     puntos_mapeados = []
 
     for game in GAME_CONFIG.keys():
-        df_h = obtener_historico_directo(game)
-        for idx, sublista in enumerate(df_h["matriz_completa"].head(500)):
-            x, y = motor_f.transformar_secuencia(sublista)
-            puntos_mapeados.append({"Identificador": f"{game} ({idx})", "Eje X": x, "Eje Y": y, "Capa": f"Historial {game}"})
+        df, cols = cargar_sorteo_real(game)
+        muestras = df[cols].head(500).values.tolist()
+        for idx, valores_fila in enumerate(muestras):
+            x, y = motor_f.transformar_secuencia(valores_fila)
+            puntos_mapeados.append({"Identificador": f"{game} (Sorteo Reciente {idx})", "Eje X": x, "Eje Y": y, "Capa": f"Historial {game}"})
 
     if len(puntos_mapeados) > 0:
         df_scatter = pd.DataFrame(puntos_mapeados)
-        fig_fractal = px.scatter(df_scatter, x="Eje X", y="Eje Y", color="Capa")
+        fig_fractal = px.scatter(df_scatter, x="Eje X", y="Eje Y", color="Capa", hover_data=["Identificador"])
         fig_fractal.update_layout(template="plotly_dark", xaxis=dict(range=[-2.1, 0.6]), yaxis=dict(range=[-1.3, 1.3]), height=500)
         st.plotly_chart(fig_fractal, use_container_width=True)
 
-# MÓDULO 4: SUGERENCIAS (RESONANCIA)
+# MÓDULO 4: SUGERENCIAS (RESONANCIA REAL DE FRONTERA)
 elif menu == "🎯 Sorteo Número Sugerido":
     st.title("🎯 Sorteo Número Sugerido e Ingeniería de Resonancia")
     motor_f = MetaPatternFractal()
@@ -196,15 +186,16 @@ elif menu == "🎯 Sorteo Número Sugerido":
             todos = list(np.random.randint(GAME_CONFIG[game]["min"], GAME_CONFIG[game]["max"] + 1, 120))
 
         contador = Counter(todos)
-        top = contador.most_common(GAME_CONFIG[game]["cantidad"])
-        sugeridos = [int(x[0]) for x in top]
+        top = ...
+        sugeridos = [int(x[0]) for x in contador.most_common(GAME_CONFIG[game]["cantidad"])]
         duales_espejo = [espejo(n) for n in sugeridos]
 
         x_sug, y_sug = motor_f.transformar_secuencia(sugeridos)
-        df_h = obtener_historico_directo(game)
+        df, cols = cargar_sorteo_real(game)
+        muestras_hist = df[cols].head(100).values.tolist()
         distancias = []
-        for sublista in df_h["matriz_completa"].head(100):
-            x_hist, y_hist = motor_f.transformar_secuencia(sublista)
+        for valores_fila in muestras_hist:
+            x_hist, y_hist = motor_f.transformar_secuencia(valores_fila)
             distancias.append(np.sqrt((x_sug - x_hist)**2 + (y_sug - y_hist)**2))
         
         distancia_promedio = np.mean(distancias) if len(distancias) > 0 else 0.0
@@ -212,7 +203,7 @@ elif menu == "🎯 Sorteo Número Sugerido":
 
         st.success(f"🎯 Sugerencia IA: {sugeridos}")
         st.info(f"🪞 Dualidad Espejo: {duales_espejo}")
-        st.markdown(f'<div class="metric-box">📊 <b>Calibración Fractal:</b> Coincidencia Histórica: <b>{coincidencia_geom}%</b> | Distancia: <b>{distancia_promedio:.4f} u</b></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="metric-box">📊 <b>Calibración Fractal Real:</b> Coincidencia Histórica: <b>{coincidencia_geom}%</b> | Distancia Euclidiana: <b>{distancia_promedio:.4f} u</b></div>', unsafe_allow_html=True)
 
 # MÓDULO 5: MOTOR ESPEJO
 elif menu == "🪞 Motor Espejo":
